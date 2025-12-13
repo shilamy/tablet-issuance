@@ -348,29 +348,28 @@ export default function TabletsPage() {
 
     if (selectedModel !== "all") {
       filtered = filtered.filter(t => t.model === selectedModel);
+/// Apply sorting
+// Apply sorting
+if (sortConfig !== null) {
+  const config = sortConfig; // Create a non-null variable
+  filtered.sort((a, b) => {
+    const aValue = a[config.key];
+    const bValue = b[config.key];
+
+    // Handle null/undefined values
+    if (aValue == null || bValue == null) {
+      // Put null/undefined values at the end
+      if (aValue == null && bValue == null) return 0;
+      if (aValue == null) return 1; // null goes last
+      if (bValue == null) return -1; // null goes last
     }
 
-    // Apply sorting
-/// Apply sorting
-if (sortConfig === null) {
-  return filtered; // Early return if no sorting needed
+    if (aValue < bValue) return config.direction === 'asc' ? -1 : 1;
+    if (aValue > bValue) return config.direction === 'asc' ? 1 : -1;
+    return 0;
+  });
 }
-
-filtered.sort((a, b) => {
-  const aValue = a[sortConfig.key];
-  const bValue = b[sortConfig.key];
-
-  // Handle null/undefined values
-  if (aValue == null || bValue == null) {
-    if (aValue == null && bValue == null) return 0;
-    if (aValue == null) return 1;
-    if (bValue == null) return -1;
-  }
-
-  if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
-  if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
-  return 0;
-});
+    }
   
   }, [searchQuery, selectedStatus, selectedCondition, selectedModel, sortConfig]);
 
