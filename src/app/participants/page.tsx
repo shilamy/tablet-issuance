@@ -229,7 +229,7 @@ export default function ParticipantsPage() {
       filtered = filtered.filter(p => p.activity === selectedActivity);
     }
 
-    // Apply sorting
+  
  // Apply sorting
   if (sortConfig !== null) {
   filtered.sort((a, b) => {
