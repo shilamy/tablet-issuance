@@ -351,18 +351,23 @@ export default function TabletsPage() {
     }
 
     // Apply sorting
-    if (sortConfig !== null) {
-      filtered.sort((a, b) => {
-        const aValue = a[sortConfig.key];
-        const bValue = b[sortConfig.key];
-        
-        if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
-        if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
-        return 0;
-      });
-    }
+filtered.sort((a, b) => {
+  const aValue = a[sortConfig.key];
+  const bValue = b[sortConfig.key];
 
-    return filtered;
+  // Handle null/undefined values
+  if (aValue == null || bValue == null) {
+    // Put null/undefined values at the end
+    if (aValue == null && bValue == null) return 0;
+    if (aValue == null) return 1; // null goes last
+    if (bValue == null) return -1; // null goes last
+  }
+
+  if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+  if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+  return 0;
+});
+  
   }, [searchQuery, selectedStatus, selectedCondition, selectedModel, sortConfig]);
 
   // Paginate results
