@@ -371,6 +371,8 @@ if (sortConfig !== null) {
 }
     }
   
+    return filtered;
+
   }, [searchQuery, selectedStatus, selectedCondition, selectedModel, sortConfig]);
 
   // Paginate results
