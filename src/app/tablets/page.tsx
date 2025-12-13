@@ -8,8 +8,7 @@ import {
   Download, 
   Tablet,
   Battery,
-  Wifi,
-  Signal,
+  Package,
   Edit2,
   Trash2,
   MoreVertical,
@@ -19,14 +18,11 @@ import {
   AlertCircle,
   RefreshCw,
   QrCode,
-  Package,
   Eye,
-  Send,
   Upload,
   BarChart3,
   Grid3x3,
   List,
-  Copy,
   Shield,
   Sparkles,
   ChevronLeft,
@@ -36,11 +32,12 @@ import {
   Cpu,
   MemoryStick,
   Settings,
-  Zap,
-  Power,
   User,
-  Calendar, // Add Calendar import
-  MapPin 
+  Calendar,
+  MapPin,
+  ExternalLink,
+  FileSpreadsheet,
+  Barcode
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -279,6 +276,39 @@ const viewModes = [
   { id: "grid", label: "Grid", icon: Grid3x3 },
 ];
 
+const exportOptions = [
+  { 
+    label: "Export All", 
+    description: "Export complete inventory list",
+    format: "CSV",
+    icon: FileSpreadsheet,
+    href: "/tablets/export/all"
+  },
+  { 
+    label: "Export Filtered", 
+    description: "Export current filtered results",
+    format: "CSV",
+    icon: Filter,
+    href: "/tablets/export/filtered",
+    disabled: false
+  },
+  { 
+    label: "Export Selected", 
+    description: "Export selected tablets only",
+    format: "CSV",
+    icon: CheckCircle,
+    href: "/tablets/export/selected",
+    disabled: false
+  },
+  { 
+    label: "Custom Export", 
+    description: "Choose fields and format",
+    format: "Multiple",
+    icon: Settings,
+    href: "/tablets/export/custom"
+  },
+];
+
 export default function TabletsPage() {
   const [tablets, setTablets] = useState<TabletDevice[]>(mockTablets);
   const [searchQuery, setSearchQuery] = useState("");
@@ -287,6 +317,7 @@ export default function TabletsPage() {
   const [selectedModel, setSelectedModel] = useState("all");
   const [selectedTablets, setSelectedTablets] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
+  const [showExportMenu, setShowExportMenu] = useState(false);
   const [sortConfig, setSortConfig] = useState<{ key: keyof TabletDevice; direction: 'asc' | 'desc' } | null>(null);
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -375,6 +406,22 @@ export default function TabletsPage() {
     setTimeout(() => setIsRefreshing(false), 1000);
   };
 
+  const handleExportClick = () => {
+    setShowExportMenu(!showExportMenu);
+  };
+
+  const handleExport = (type: string) => {
+    console.log(`Exporting ${type}...`);
+    setShowExportMenu(false);
+  };
+
+  const handleQuickExport = () => {
+    // Quick export of filtered data
+    const dataToExport = filteredTablets;
+    console.log("Quick exporting data:", dataToExport.length, "items");
+    // In a real app, this would trigger a download or open export modal
+  };
+
   const totalPages = Math.ceil(filteredTablets.length / itemsPerPage);
 
   const stats = {
@@ -447,7 +494,7 @@ export default function TabletsPage() {
 
   const bulkActions = [
     { label: "Assign Tablets", icon: Package, color: "bg-blue-500 hover:bg-blue-600" },
-    { label: "Export List", icon: Download, color: "bg-gray-800 hover:bg-gray-900" },
+    { label: "Export List", icon: Download, color: "bg-gray-800 hover:bg-gray-900", onClick: handleQuickExport },
     { label: "Mark for Maintenance", icon: Settings, color: "bg-yellow-500 hover:bg-yellow-600" },
     { label: "Update Status", icon: RefreshCw, color: "bg-purple-500 hover:bg-purple-600" },
     { label: "Delete Selected", icon: Trash2, color: "bg-red-500 hover:bg-red-600" },
@@ -471,10 +518,71 @@ export default function TabletsPage() {
             >
               <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
             </button>
-            <button className="flex items-center px-3 py-2 bg-gray-800 hover:bg-gray-900 text-white rounded-lg text-sm">
-              <Download className="w-4 h-4 mr-1.5" />
-              Export
-            </button>
+            
+            {/* Export Button with Dropdown */}
+            <div className="relative">
+              <button 
+                onClick={handleExportClick}
+                className="flex items-center px-3 py-2 bg-gray-800 hover:bg-gray-900 text-white rounded-lg text-sm"
+              >
+                <Download className="w-4 h-4 mr-1.5" />
+                Export
+                <ChevronDown className={`w-3 h-3 ml-1 transition-transform ${showExportMenu ? 'rotate-180' : ''}`} />
+              </button>
+              
+              {showExportMenu && (
+                <>
+                  <div 
+                    className="fixed inset-0 z-10"
+                    onClick={() => setShowExportMenu(false)}
+                  />
+                  <div className="absolute right-0 mt-1 w-64 bg-white border border-gray-200 rounded-lg shadow-lg z-20">
+                    <div className="p-2">
+                      <div className="px-3 py-2 border-b border-gray-100">
+                        <p className="text-sm font-medium text-gray-900">Export Options</p>
+                        <p className="text-xs text-gray-500 mt-0.5">Choose export type</p>
+                      </div>
+                      <div className="py-1">
+                        {exportOptions.map((option, index) => (
+                          <Link
+                            key={index}
+                            href={option.href}
+                            className={cn(
+                              "flex items-start px-3 py-2 hover:bg-gray-50 rounded-md transition-colors",
+                              option.disabled && "opacity-50 cursor-not-allowed"
+                            )}
+                            onClick={() => setShowExportMenu(false)}
+                          >
+                            <div className="mr-3 mt-0.5">
+                              <option.icon className="w-4 h-4 text-gray-500" />
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm font-medium text-gray-900">{option.label}</span>
+                                <span className="text-xs text-gray-500 px-1.5 py-0.5 bg-gray-100 rounded">
+                                  {option.format}
+                                </span>
+                              </div>
+                              <p className="text-xs text-gray-500 mt-0.5">{option.description}</p>
+                            </div>
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Scan Button */}
+            <Link
+              href="/tablets/scan"
+              className="flex items-center px-3 py-2 bg-white border border-gray-300 hover:bg-gray-50 text-gray-800 rounded-lg text-sm"
+            >
+              <Barcode className="w-4 h-4 mr-1.5" />
+              Scan
+            </Link>
+
             <Link
               href="/tablets/new"
               className="flex items-center px-3 py-2 bg-knbs-500 hover:bg-knbs-600 text-white rounded-lg text-sm"
@@ -591,11 +699,14 @@ export default function TabletsPage() {
                 )}
               </button>
 
-              {/* QR Scan Button */}
-              <button className="flex items-center px-3 py-2 bg-knbs-500 hover:bg-knbs-600 text-white rounded-lg text-sm">
+              {/* Quick Scan Button */}
+              <Link
+                href="/tablets/scan"
+                className="flex items-center px-3 py-2 bg-knbs-50 border border-knbs-200 text-knbs-700 hover:bg-knbs-100 rounded-lg text-sm"
+              >
                 <QrCode className="w-4 h-4 mr-1.5" />
-                Scan
-              </button>
+                Quick Scan
+              </Link>
             </div>
           </div>
 
@@ -688,6 +799,7 @@ export default function TabletsPage() {
                 {bulkActions.slice(0, 3).map((action, index) => (
                   <button
                     key={index}
+                    onClick={action.onClick}
                     className={`flex items-center px-3 py-1.5 text-white rounded text-xs ${action.color}`}
                   >
                     <action.icon className="w-3 h-3 mr-1.5" />
@@ -1082,18 +1194,18 @@ export default function TabletsPage() {
                 <Upload className="w-4 h-4 text-gray-400" />
               </Link>
               <Link
-                href="/issuance/bulk"
+                href="/tablets/export"
                 className="flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg"
               >
-                <span className="text-sm font-medium text-gray-900">Bulk Issuance</span>
-                <Package className="w-4 h-4 text-gray-400" />
+                <span className="text-sm font-medium text-gray-900">Advanced Export</span>
+                <ExternalLink className="w-4 h-4 text-gray-400" />
               </Link>
               <Link
-                href="/tablets/maintenance"
+                href="/tablets/scan"
                 className="flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg"
               >
-                <span className="text-sm font-medium text-gray-900">Maintenance Report</span>
-                <Settings className="w-4 h-4 text-gray-400" />
+                <span className="text-sm font-medium text-gray-900">Barcode Scanner</span>
+                <Barcode className="w-4 h-4 text-gray-400" />
               </Link>
             </div>
           </div>
