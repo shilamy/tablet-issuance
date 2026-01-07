@@ -1,7 +1,7 @@
 // app/participants/page.tsx
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { 
   Search, 
   Filter, 
@@ -34,147 +34,49 @@ import {
   Shield,
   Sparkles,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Bell,
+  Tablet,
+  Clock,
+  Smartphone,
+  Battery,
+  Wifi,
+  HardDrive,
+  Check,
+  X,
+  BatteryCharging,
+  WifiOff,
+  AlertTriangle,
+  CalendarDays,
+  FileUp,
+  FileDown,
+  SendHorizontal,
+  BellRing
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import Layout from "@/components/Layout";
+import { Participant } from "@/types/participants";
 
-interface Participant {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  location: string;
-  status: "active" | "inactive" | "pending";
-  activity: string;
-  tabletsIssued: number;
-  lastActivity: string;
-  contractStatus: "active" | "expired" | "none";
-  joinDate: string;
-  role?: string;
-}
 
-const mockParticipants: Participant[] = [
-  {
-    id: "P001",
-    name: "John Doe",
-    email: "john.doe@example.com",
-    phone: "+254 712 345 678",
-    location: "Nairobi",
-    status: "active",
-    activity: "Household Survey",
-    tabletsIssued: 2,
-    lastActivity: "2024-01-15",
-    contractStatus: "active",
-    joinDate: "2023-11-20",
-    role: "Field Officer"
-  },
-  {
-    id: "P002",
-    name: "Mary Wilson",
-    email: "mary.w@example.com",
-    phone: "+254 723 456 789",
-    location: "Mombasa",
-    status: "active",
-    activity: "Agricultural Census",
-    tabletsIssued: 1,
-    lastActivity: "2024-01-14",
-    contractStatus: "active",
-    joinDate: "2023-10-15",
-    role: "Supervisor"
-  },
-  {
-    id: "P003",
-    name: "Alex Johnson",
-    email: "alex.j@example.com",
-    phone: "+254 734 567 890",
-    location: "Kisumu",
-    status: "pending",
-    activity: "Business Survey",
-    tabletsIssued: 0,
-    lastActivity: "2024-01-10",
-    contractStatus: "none",
-    joinDate: "2024-01-05",
-    role: "Enumerator"
-  },
-  {
-    id: "P004",
-    name: "Sarah Chen",
-    email: "sarah.c@example.com",
-    phone: "+254 745 678 901",
-    location: "Nakuru",
-    status: "active",
-    activity: "Household Survey",
-    tabletsIssued: 3,
-    lastActivity: "2024-01-13",
-    contractStatus: "active",
-    joinDate: "2023-09-12",
-    role: "Team Lead"
-  },
-  {
-    id: "P005",
-    name: "David Kimani",
-    email: "david.k@example.com",
-    phone: "+254 756 789 012",
-    location: "Eldoret",
-    status: "inactive",
-    activity: "Population Census",
-    tabletsIssued: 1,
-    lastActivity: "2023-12-20",
-    contractStatus: "expired",
-    joinDate: "2023-08-25",
-    role: "Field Officer"
-  },
-  {
-    id: "P006",
-    name: "Grace Omondi",
-    email: "grace.o@example.com",
-    phone: "+254 767 890 123",
-    location: "Nairobi",
-    status: "active",
-    activity: "Health Survey",
-    tabletsIssued: 2,
-    lastActivity: "2024-01-12",
-    contractStatus: "active",
-    joinDate: "2023-12-01",
-    role: "Data Collector"
-  },
-  {
-    id: "P007",
-    name: "Peter Mbogo",
-    email: "peter.m@example.com",
-    phone: "+254 778 901 234",
-    location: "Kisii",
-    status: "pending",
-    activity: "Education Survey",
-    tabletsIssued: 0,
-    lastActivity: "2024-01-09",
-    contractStatus: "none",
-    joinDate: "2024-01-08",
-    role: "Enumerator"
-  },
-  {
-    id: "P008",
-    name: "Lucy Wanjiku",
-    email: "lucy.w@example.com",
-    phone: "+254 789 012 345",
-    location: "Thika",
-    status: "active",
-    activity: "Agricultural Census",
-    tabletsIssued: 1,
-    lastActivity: "2024-01-14",
-    contractStatus: "active",
-    joinDate: "2023-11-30",
-    role: "Field Officer"
-  },
-];
+
+
+
 
 const statusOptions = [
   { value: "all", label: "All Status", color: "bg-gray-100 text-gray-800", icon: Users },
   { value: "active", label: "Active", color: "bg-green-100 text-green-800", icon: CheckCircle },
   { value: "inactive", label: "Inactive", color: "bg-red-100 text-red-800", icon: XCircle },
   { value: "pending", label: "Pending", color: "bg-yellow-100 text-yellow-800", icon: AlertCircle },
+];
+
+const tabletStatusOptions = [
+  { value: "all", label: "All Tablet Status", color: "bg-gray-100 text-gray-800", icon: Tablet },
+  { value: "active", label: "Active", color: "bg-green-100 text-green-800", icon: CheckCircle },
+  { value: "damaged", label: "Damaged", color: "bg-red-100 text-red-800", icon: AlertTriangle },
+  { value: "returned", label: "Returned", color: "bg-blue-100 text-blue-800", icon: Check },
+  { value: "lost", label: "Lost", color: "bg-red-100 text-red-800", icon: XCircle },
+  { value: "maintenance", label: "Maintenance", color: "bg-yellow-100 text-yellow-800", icon: Package },
 ];
 
 const activityOptions = [
@@ -196,6 +98,7 @@ export default function ParticipantsPage() {
   const [participants, setParticipants] = useState<Participant[]>(mockParticipants);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("all");
+  const [selectedTabletStatus, setSelectedTabletStatus] = useState("all");
   const [selectedActivity, setSelectedActivity] = useState("all");
   const [selectedParticipants, setSelectedParticipants] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
@@ -203,6 +106,7 @@ export default function ParticipantsPage() {
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [notificationSent, setNotificationSent] = useState<Record<string, boolean>>({});
   const itemsPerPage = 8;
 
   // Memoized filtered participants
@@ -217,7 +121,8 @@ export default function ParticipantsPage() {
         p.phone.includes(query) ||
         p.location.toLowerCase().includes(query) ||
         p.id.toLowerCase().includes(query) ||
-        p.role?.toLowerCase().includes(query)
+        p.role?.toLowerCase().includes(query) ||
+        p.tabletSerial?.toLowerCase().includes(query)
       );
     }
 
@@ -225,34 +130,34 @@ export default function ParticipantsPage() {
       filtered = filtered.filter(p => p.status === selectedStatus);
     }
 
+    if (selectedTabletStatus !== "all") {
+      filtered = filtered.filter(p => p.tabletStatus === selectedTabletStatus);
+    }
+
     if (selectedActivity !== "all") {
       filtered = filtered.filter(p => p.activity === selectedActivity);
     }
 
-  
- // Apply sorting
-  if (sortConfig !== null) {
-  filtered.sort((a, b) => {
-    const aValue = a[sortConfig.key];
-    const bValue = b[sortConfig.key];
+    // Apply sorting
+    if (sortConfig !== null) {
+      filtered.sort((a, b) => {
+        const aValue = a[sortConfig.key];
+        const bValue = b[sortConfig.key];
 
-    // Handle undefined values
-    if (aValue === undefined || bValue === undefined) {
-      // Put undefined values at the end
-      if (aValue === undefined && bValue === undefined) return 0;
-      if (aValue === undefined) return 1; // undefined goes last
-      if (bValue === undefined) return -1; // undefined goes last
+        if (aValue === undefined || bValue === undefined) {
+          if (aValue === undefined && bValue === undefined) return 0;
+          if (aValue === undefined) return 1;
+          if (bValue === undefined) return -1;
+        }
+
+        if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
     }
 
-    if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
-    if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
-    return 0;
-  });
-}
-
-return filtered;
-
-  }, [searchQuery, selectedStatus, selectedActivity, sortConfig]);
+    return filtered;
+  }, [searchQuery, selectedStatus, selectedTabletStatus, selectedActivity, sortConfig]);
 
   // Paginate results
   const paginatedParticipants = useMemo(() => {
@@ -301,7 +206,16 @@ return filtered;
     total: mockParticipants.length,
     active: mockParticipants.filter(p => p.status === 'active').length,
     pending: mockParticipants.filter(p => p.status === 'pending').length,
-    withContracts: mockParticipants.filter(p => p.contractStatus === 'active').length,
+    withTablets: mockParticipants.filter(p => p.tabletsIssued > 0).length,
+    tabletsActive: mockParticipants.filter(p => p.tabletStatus === 'active').length,
+    tabletsDue: mockParticipants.filter(p => {
+      if (!p.expectedReturnDate || p.tabletStatus !== 'active') return false;
+      const returnDate = new Date(p.expectedReturnDate);
+      const today = new Date();
+      const diffTime = returnDate.getTime() - today.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      return diffDays <= 7 && diffDays >= 0;
+    }).length,
     byActivity: activityOptions.slice(1).map(activity => ({
       ...activity,
       count: mockParticipants.filter(p => p.activity === activity.value).length
@@ -309,7 +223,14 @@ return filtered;
     byLocation: Array.from(new Set(mockParticipants.map(p => p.location))).map(location => ({
       location,
       count: mockParticipants.filter(p => p.location === location).length
-    }))
+    })),
+    tabletStatus: {
+      active: mockParticipants.filter(p => p.tabletStatus === 'active').length,
+      damaged: mockParticipants.filter(p => p.tabletStatus === 'damaged').length,
+      returned: mockParticipants.filter(p => p.tabletStatus === 'returned').length,
+      lost: mockParticipants.filter(p => p.tabletStatus === 'lost').length,
+      maintenance: mockParticipants.filter(p => p.tabletStatus === 'maintenance').length,
+    }
   };
 
   const getStatusIcon = (status: Participant['status']) => {
@@ -320,6 +241,40 @@ return filtered;
         return <XCircle className="w-4 h-4" />;
       case 'pending':
         return <AlertCircle className="w-4 h-4" />;
+    }
+  };
+
+  const getTabletStatusIcon = (status: Participant['tabletStatus']) => {
+    switch (status) {
+      case 'active':
+        return <CheckCircle className="w-4 h-4" />;
+      case 'damaged':
+        return <AlertTriangle className="w-4 h-4" />;
+      case 'returned':
+        return <Check className="w-4 h-4" />;
+      case 'lost':
+        return <XCircle className="w-4 h-4" />;
+      case 'maintenance':
+        return <Package className="w-4 h-4" />;
+      default:
+        return <AlertCircle className="w-4 h-4" />;
+    }
+  };
+
+  const getTabletStatusColor = (status: Participant['tabletStatus'] = 'active') => {
+    switch (status) {
+      case 'active':
+        return 'bg-green-100 text-green-800';
+      case 'damaged':
+        return 'bg-red-100 text-red-800';
+      case 'returned':
+        return 'bg-blue-100 text-blue-800';
+      case 'lost':
+        return 'bg-red-100 text-red-800';
+      case 'maintenance':
+        return 'bg-yellow-100 text-yellow-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
@@ -334,11 +289,112 @@ return filtered;
     }
   };
 
+  const handleSendNotification = (participantId: string) => {
+    const participant = participants.find(p => p.id === participantId);
+    if (participant) {
+      // In real app, integrate with SMS/email API
+      alert(`Notification sent to ${participant.name} at ${participant.phone}`);
+      setNotificationSent(prev => ({ ...prev, [participantId]: true }));
+      // Reset notification sent status after 5 seconds
+      setTimeout(() => {
+        setNotificationSent(prev => ({ ...prev, [participantId]: false }));
+      }, 5000);
+    }
+  };
+
+  const handleBulkNotification = () => {
+    if (selectedParticipants.length === 0) {
+      alert("Please select participants first");
+      return;
+    }
+    // In real app, send bulk notifications
+    alert(`Notifications sent to ${selectedParticipants.length} participants`);
+    selectedParticipants.forEach(id => {
+      setNotificationSent(prev => ({ ...prev, [id]: true }));
+    });
+    setTimeout(() => {
+      const reset = selectedParticipants.reduce((acc, id) => {
+        acc[id] = false;
+        return acc;
+      }, {} as Record<string, boolean>);
+      setNotificationSent(prev => ({ ...prev, ...reset }));
+    }, 5000);
+  };
+
+  const handleImport = () => {
+    // In real app, implement file upload
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.csv,.xlsx,.xls';
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        alert(`Importing ${file.name}`);
+        // Process file here
+      }
+    };
+    input.click();
+  };
+
+  const handleExport = () => {
+    const data = selectedParticipants.length > 0
+      ? participants.filter(p => selectedParticipants.includes(p.id))
+      : filteredParticipants;
+
+    // Create CSV content
+    const headers = ['ID', 'Name', 'Email', 'Phone', 'Location', 'Activity', 'Tablet Serial', 'Tablet Model', 'Tablet Status', 'Issue Date', 'Expected Return', 'Battery Health', 'Last Sync'];
+    const csvContent = [
+      headers.join(','),
+      ...data.map(p => [
+        p.id,
+        `"${p.name}"`,
+        p.email,
+        p.phone,
+        p.location,
+        p.activity,
+        p.tabletSerial || '',
+        p.tabletModel || '',
+        p.tabletStatus || '',
+        p.issueDate || '',
+        p.expectedReturnDate || '',
+        p.batteryHealth || '',
+        p.lastSync || ''
+      ].join(','))
+    ].join('\n');
+
+    // Create and trigger download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `tablet-participants-${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const isReturnDateNear = (date?: string) => {
+    if (!date) return false;
+    const today = new Date();
+    const returnDate = new Date(date);
+    const diffTime = returnDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays <= 7 && diffDays >= 0;
+  };
+
+  const isReturnDatePassed = (date?: string) => {
+    if (!date) return false;
+    const today = new Date();
+    const returnDate = new Date(date);
+    return returnDate < today;
+  };
+
   const bulkActions = [
-    { label: "Send Email", icon: Send, color: "bg-blue-500 hover:bg-blue-600" },
-    { label: "Export Selected", icon: Download, color: "bg-gray-800 hover:bg-gray-900" },
-    { label: "Assign Contract", icon: FileText, color: "bg-purple-500 hover:bg-purple-600" },
-    { label: "Issue Tablets", icon: Package, color: "bg-green-500 hover:bg-green-600" },
+    { label: "Send Notification", icon: BellRing, color: "bg-blue-500 hover:bg-blue-600", onClick: handleBulkNotification },
+    { label: "Export Selected", icon: Download, color: "bg-gray-800 hover:bg-gray-900", onClick: handleExport },
+    { label: "Assign Tablets", icon: Package, color: "bg-purple-500 hover:bg-purple-600" },
+    { label: "Mark as Returned", icon: Check, color: "bg-green-500 hover:bg-green-600" },
     { label: "Delete Selected", icon: Trash2, color: "bg-red-500 hover:bg-red-600" },
   ];
 
@@ -348,8 +404,8 @@ return filtered;
         {/* Header Section */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
           <div>
-            <h1 className="text-xl font-bold text-gray-900">Participants</h1>
-            <p className="text-sm text-gray-600">Manage all survey participants</p>
+            <h1 className="text-xl font-bold text-gray-900">Tablet Management</h1>
+            <p className="text-sm text-gray-600">Track tablets issued to survey participants</p>
           </div>
           <div className="flex items-center space-x-2">
             <button 
@@ -360,13 +416,23 @@ return filtered;
             >
               <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
             </button>
-            <button className="flex items-center px-3 py-2 bg-gray-800 hover:bg-gray-900 text-white rounded-lg text-sm">
+            <button 
+              onClick={handleExport}
+              className="flex items-center px-3 py-2 bg-gray-800 hover:bg-gray-900 text-white rounded-lg text-sm"
+            >
               <Download className="w-4 h-4 mr-1.5" />
               Export
             </button>
+            <button 
+              onClick={handleImport}
+              className="flex items-center px-3 py-2 bg-knbs-500 hover:bg-knbs-600 text-white rounded-lg text-sm"
+            >
+              <Upload className="w-4 h-4 mr-1.5" />
+              Import
+            </button>
             <Link
               href="/participants/new"
-              className="flex items-center px-3 py-2 bg-knbs-500 hover:bg-knbs-600 text-white rounded-lg text-sm"
+              className="flex items-center px-3 py-2 bg-knbs-600 hover:bg-knbs-700 text-white rounded-lg text-sm"
             >
               <Plus className="w-4 h-4 mr-1.5" />
               Add New
@@ -379,7 +445,7 @@ return filtered;
           <div className="bg-white rounded-lg border border-gray-200 p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Total</p>
+                <p className="text-sm text-gray-600">Total Participants</p>
                 <p className="text-xl font-bold text-gray-900 mt-1">{stats.total}</p>
               </div>
               <Users className="w-5 h-5 text-gray-400" />
@@ -388,28 +454,28 @@ return filtered;
           <div className="bg-white rounded-lg border border-gray-200 p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Active</p>
-                <p className="text-xl font-bold text-green-600 mt-1">{stats.active}</p>
+                <p className="text-sm text-gray-600">Tablets Issued</p>
+                <p className="text-xl font-bold text-green-600 mt-1">{stats.withTablets}</p>
               </div>
-              <CheckCircle className="w-5 h-5 text-green-400" />
+              <Tablet className="w-5 h-5 text-green-400" />
             </div>
           </div>
           <div className="bg-white rounded-lg border border-gray-200 p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Pending</p>
-                <p className="text-xl font-bold text-yellow-600 mt-1">{stats.pending}</p>
+                <p className="text-sm text-gray-600">Due for Return</p>
+                <p className="text-xl font-bold text-yellow-600 mt-1">{stats.tabletsDue}</p>
               </div>
-              <AlertCircle className="w-5 h-5 text-yellow-400" />
+              <Clock className="w-5 h-5 text-yellow-400" />
             </div>
           </div>
           <div className="bg-white rounded-lg border border-gray-200 p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Contracts</p>
-                <p className="text-xl font-bold text-blue-600 mt-1">{stats.withContracts}</p>
+                <p className="text-sm text-gray-600">Active Tablets</p>
+                <p className="text-xl font-bold text-blue-600 mt-1">{stats.tabletsActive}</p>
               </div>
-              <FileText className="w-5 h-5 text-blue-400" />
+              <CheckCircle className="w-5 h-5 text-blue-400" />
             </div>
           </div>
         </div>
@@ -422,7 +488,7 @@ return filtered;
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <input
                   type="search"
-                  placeholder="Search participants..."
+                  placeholder="Search by name, phone, tablet serial..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-knbs-500 focus:border-transparent text-sm"
@@ -457,24 +523,42 @@ return filtered;
               >
                 <Filter className="w-4 h-4 mr-1.5" />
                 Filters
-                {(selectedStatus !== "all" || selectedActivity !== "all") && (
+                {(selectedStatus !== "all" || selectedTabletStatus !== "all" || selectedActivity !== "all") && (
                   <span className="ml-1.5 w-2 h-2 rounded-full bg-knbs-500"></span>
                 )}
               </button>
 
               {/* More Actions */}
-              <button className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50">
-                <MoreVertical className="w-4 h-4" />
-              </button>
+              <div className="relative group">
+                <button className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+                  <MoreVertical className="w-4 h-4" />
+                </button>
+                <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
+                  <div className="py-1">
+                    <button className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                      <Copy className="w-4 h-4 mr-2" />
+                      Copy Data
+                    </button>
+                    <button className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                      <BarChart3 className="w-4 h-4 mr-2" />
+                      Generate Report
+                    </button>
+                    <button className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                      <Send className="w-4 h-4 mr-2" />
+                      Bulk Email
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
           {/* Filter Options */}
           {showFilters && (
             <div className="mt-4 pt-4 border-t border-gray-100">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Participant Status</label>
                   <div className="flex flex-wrap gap-2">
                     {statusOptions.map((option) => (
                       <button
@@ -482,6 +566,25 @@ return filtered;
                         onClick={() => setSelectedStatus(option.value)}
                         className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                           selectedStatus === option.value
+                            ? option.color
+                            : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                        }`}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Tablet Status</label>
+                  <div className="flex flex-wrap gap-2">
+                    {tabletStatusOptions.map((option) => (
+                      <button
+                        key={option.value}
+                        onClick={() => setSelectedTabletStatus(option.value)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                          selectedTabletStatus === option.value
                             ? option.color
                             : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                         }`}
@@ -511,11 +614,12 @@ return filtered;
                 <button
                   onClick={() => {
                     setSelectedStatus("all");
+                    setSelectedTabletStatus("all");
                     setSelectedActivity("all");
                   }}
                   className="text-sm text-gray-600 hover:text-gray-900"
                 >
-                  Clear filters
+                  Clear all filters
                 </button>
               </div>
             </div>
@@ -539,6 +643,7 @@ return filtered;
                 {bulkActions.slice(0, 3).map((action, index) => (
                   <button
                     key={index}
+                    onClick={action.onClick}
                     className={`flex items-center px-3 py-1.5 text-white rounded text-xs ${action.color}`}
                   >
                     <action.icon className="w-3 h-3 mr-1.5" />
@@ -580,13 +685,13 @@ return filtered;
                       Contact
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Activity
+                      Activity & Tablet
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Status
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Tablets
+                      Return Date
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Actions
@@ -599,7 +704,8 @@ return filtered;
                       key={participant.id}
                       className={cn(
                         "hover:bg-gray-50",
-                        selectedParticipants.includes(participant.id) && "bg-knbs-50"
+                        selectedParticipants.includes(participant.id) && "bg-knbs-50",
+                        isReturnDatePassed(participant.expectedReturnDate) && "bg-red-50"
                       )}
                     >
                       <td className="px-4 py-3">
@@ -631,7 +737,7 @@ return filtered;
                             </div>
                             <div className="flex items-center mt-1 text-xs text-gray-500">
                               <MapPin className="w-3 h-3 mr-1" />
-                              {participant.location}
+                              {participant.location} • {participant.role}
                             </div>
                           </div>
                         </div>
@@ -649,10 +755,40 @@ return filtered;
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        <div className="text-sm text-gray-900">{participant.activity}</div>
-                        <div className="flex items-center mt-1 text-xs text-gray-500">
-                          <Calendar className="w-3 h-3 mr-1" />
-                          Joined {participant.joinDate}
+                        <div className="space-y-1">
+                          <div className="text-sm font-medium text-gray-900">{participant.activity}</div>
+                          {participant.tabletSerial ? (
+                            <>
+                              <div className="flex items-center text-xs text-gray-600">
+                                <Smartphone className="w-3 h-3 mr-1" />
+                                {participant.tabletModel}
+                              </div>
+                              <div className="flex items-center text-xs text-gray-500">
+                                <span className="font-mono">{participant.tabletSerial}</span>
+                              </div>
+                              <div className="flex items-center text-xs text-gray-500 space-x-2">
+                                {participant.batteryHealth && (
+                                  <span className="flex items-center">
+                                    <Battery className="w-3 h-3 mr-1" />
+                                    {participant.batteryHealth}%
+                                  </span>
+                                )}
+                                {participant.wifiConnected ? (
+                                  <span className="flex items-center text-green-600">
+                                    <Wifi className="w-3 h-3 mr-1" />
+                                    Online
+                                  </span>
+                                ) : (
+                                  <span className="flex items-center text-gray-400">
+                                    <WifiOff className="w-3 h-3 mr-1" />
+                                    Offline
+                                  </span>
+                                )}
+                              </div>
+                            </>
+                          ) : (
+                            <div className="text-xs text-gray-400">No tablet assigned</div>
+                          )}
                         </div>
                       </td>
                       <td className="px-4 py-3">
@@ -665,17 +801,60 @@ return filtered;
                             {getStatusIcon(participant.status)}
                             <span className="ml-1 capitalize">{participant.status}</span>
                           </div>
-                          <div className={`inline-flex px-2 py-1 rounded text-xs font-medium ${getContractStatusColor(participant.contractStatus)}`}>
-                            {participant.contractStatus === 'none' ? 'No Contract' : participant.contractStatus}
+                          <div className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${getTabletStatusColor(participant.tabletStatus)}`}>
+                            {getTabletStatusIcon(participant.tabletStatus)}
+                            <span className="ml-1 capitalize">{participant.tabletStatus || 'No tablet'}</span>
                           </div>
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        <div className="text-sm font-medium text-gray-900">{participant.tabletsIssued}</div>
-                        <div className="text-xs text-gray-500">tablets</div>
+                        {participant.expectedReturnDate ? (
+                          <div className="space-y-1">
+                            <div className={cn(
+                              "text-sm font-medium",
+                              isReturnDatePassed(participant.expectedReturnDate) 
+                                ? "text-red-600"
+                                : isReturnDateNear(participant.expectedReturnDate)
+                                ? "text-yellow-600"
+                                : "text-gray-900"
+                            )}>
+                              {participant.expectedReturnDate}
+                            </div>
+                            <div className="flex items-center text-xs text-gray-500">
+                              <Calendar className="w-3 h-3 mr-1" />
+                              Issued: {participant.issueDate}
+                            </div>
+                            {participant.actualReturnDate && (
+                              <div className="text-xs text-green-600">
+                                Returned: {participant.actualReturnDate}
+                              </div>
+                            )}
+                            {isReturnDatePassed(participant.expectedReturnDate) && (
+                              <div className="text-xs text-red-600 font-medium">OVERDUE</div>
+                            )}
+                            {isReturnDateNear(participant.expectedReturnDate) && !isReturnDatePassed(participant.expectedReturnDate) && (
+                              <div className="text-xs text-yellow-600 font-medium">Due Soon</div>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="text-sm text-gray-400">No return date</div>
+                        )}
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center space-x-1">
+                          <button
+                            onClick={() => handleSendNotification(participant.id)}
+                            className={cn(
+                              "flex items-center px-2 py-1 rounded text-xs",
+                              notificationSent[participant.id]
+                                ? "bg-green-100 text-green-800"
+                                : "bg-blue-100 text-blue-800 hover:bg-blue-200"
+                            )}
+                            title="Send return reminder"
+                          >
+                            <Bell className="w-3 h-3 mr-1" />
+                            {notificationSent[participant.id] ? "Sent" : "Notify"}
+                          </button>
                           <Link
                             href={`/participants/${participant.id}`}
                             className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded"
@@ -792,7 +971,10 @@ return filtered;
             {participants.map((participant) => (
               <div
                 key={participant.id}
-                className="bg-white rounded-lg border border-gray-200 p-4"
+                className={cn(
+                  "bg-white rounded-lg border border-gray-200 p-4",
+                  isReturnDatePassed(participant.expectedReturnDate) && "border-red-200 bg-red-50"
+                )}
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center">
@@ -828,35 +1010,54 @@ return filtered;
                     <MapPin className="w-3 h-3 mr-2" />
                     {participant.location}
                   </div>
+                  {participant.tabletModel && (
+                    <div className="flex items-center text-sm text-gray-600">
+                      <Tablet className="w-3 h-3 mr-2" />
+                      {participant.tabletModel}
+                    </div>
+                  )}
                 </div>
                 
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <p className="text-sm font-medium text-gray-900">{participant.activity}</p>
-                    <p className="text-xs text-gray-500">{participant.tabletsIssued} tablets</p>
+                    <p className="text-xs text-gray-500">
+                      {participant.expectedReturnDate ? `Due: ${participant.expectedReturnDate}` : 'No return date'}
+                    </p>
                   </div>
-                  <div className={`px-2 py-1 rounded text-xs font-medium ${getContractStatusColor(participant.contractStatus)}`}>
-                    {participant.contractStatus === 'none' ? 'No Contract' : participant.contractStatus}
+                  <div className={`px-2 py-1 rounded text-xs font-medium ${getTabletStatusColor(participant.tabletStatus)}`}>
+                    {participant.tabletStatus || 'No tablet'}
                   </div>
                 </div>
                 
                 <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                  <Link
-                    href={`/participants/${participant.id}`}
-                    className="text-sm text-knbs-600 hover:text-knbs-700"
+                  <button
+                    onClick={() => handleSendNotification(participant.id)}
+                    className={cn(
+                      "text-sm flex items-center",
+                      notificationSent[participant.id]
+                        ? "text-green-600"
+                        : "text-knbs-600 hover:text-knbs-700"
+                    )}
                   >
-                    View →
-                  </Link>
+                    <Bell className="w-3 h-3 mr-1" />
+                    {notificationSent[participant.id] ? "Notification Sent" : "Send Reminder"}
+                  </button>
                   <div className="flex items-center space-x-1">
+                    <Link
+                      href={`/participants/${participant.id}`}
+                      className="p-1 text-gray-400 hover:text-blue-600"
+                      title="View"
+                    >
+                      <Eye className="w-4 h-4" />
+                    </Link>
                     <Link
                       href={`/participants/${participant.id}/edit`}
                       className="p-1 text-gray-400 hover:text-knbs-600"
+                      title="Edit"
                     >
                       <Edit2 className="w-4 h-4" />
                     </Link>
-                    <button className="p-1 text-gray-400 hover:text-red-600">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
                   </div>
                 </div>
               </div>
@@ -879,12 +1080,12 @@ return filtered;
           </div>
 
           <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <h3 className="text-sm font-medium text-gray-900 mb-3">Participants by Location</h3>
+            <h3 className="text-sm font-medium text-gray-900 mb-3">Tablet Status Overview</h3>
             <div className="space-y-3">
-              {stats.byLocation.map((location) => (
-                <div key={location.location} className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600">{location.location}</span>
-                  <span className="font-medium text-gray-900">{location.count}</span>
+              {Object.entries(stats.tabletStatus).map(([status, count]) => (
+                <div key={status} className="flex items-center justify-between text-sm">
+                  <span className="text-gray-600 capitalize">{status}</span>
+                  <span className="font-medium text-gray-900">{count}</span>
                 </div>
               ))}
             </div>
@@ -893,25 +1094,25 @@ return filtered;
           <div className="bg-white rounded-lg border border-gray-200 p-4">
             <h3 className="text-sm font-medium text-gray-900 mb-3">Quick Actions</h3>
             <div className="space-y-2">
-              <Link
-                href="/participants/import"
-                className="flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg"
+              <button
+                onClick={handleImport}
+                className="flex items-center justify-between w-full p-3 bg-gray-50 hover:bg-gray-100 rounded-lg text-left"
               >
                 <span className="text-sm font-medium text-gray-900">Import Participants</span>
+                <Upload className="w-4 h-4 text-gray-400" />
+              </button>
+              <button
+                onClick={handleExport}
+                className="flex items-center justify-between w-full p-3 bg-gray-50 hover:bg-gray-100 rounded-lg text-left"
+              >
+                <span className="text-sm font-medium text-gray-900">Export All Data</span>
                 <Download className="w-4 h-4 text-gray-400" />
-              </Link>
+              </button>
               <Link
-                href="/contracts/new"
+                href="/tablets/issue"
                 className="flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg"
               >
-                <span className="text-sm font-medium text-gray-900">Create Contract</span>
-                <FileText className="w-4 h-4 text-gray-400" />
-              </Link>
-              <Link
-                href="/issuance/bulk"
-                className="flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg"
-              >
-                <span className="text-sm font-medium text-gray-900">Bulk Issuance</span>
+                <span className="text-sm font-medium text-gray-900">Issue New Tablet</span>
                 <Package className="w-4 h-4 text-gray-400" />
               </Link>
             </div>

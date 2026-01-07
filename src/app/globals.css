@@ -25,3 +25,30 @@ body {
   margin: 0;
   padding: 0;
 }
+
+ /* Scanner specific styles */  
+        @keyframes scan {
+          0% { transform: translateY(-100%); }
+          100% { transform: translateY(400%); }
+        }
+        .animate-scan {
+          animation: scan 2s linear infinite;
+        }
+        
+        /* Scanner container styling */
+        #scanner-container {
+          min-height: 400px;
+        }
+        
+        /* Hide html5-qrcode logo */
+        #scanner-container .html5-qrcode-element {
+          display: none !important;
+        }
+        
+        /* Style the scanner video */
+        #scanner-container video {
+          border-radius: 12px;
+          object-fit: cover;
+        }
+      
+
