@@ -14,7 +14,7 @@ export interface TabletDevice {
   purchaseDate: string;
   warranty: string;
   lastChecked: string;
-  condition: "excellent" | "good" | "fair" | "poor";
+  condition: "excellent" | "good" | "fair" | "poor" | "damaged";
   serialNumber?: string;
   imei?: string;
   barcode?: string;

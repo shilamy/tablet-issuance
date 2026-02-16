@@ -2,14 +2,15 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { 
-  Search, 
-  Filter, 
-  Plus, 
-  Download, 
-  Mail, 
-  Phone, 
-  MapPin, 
+import {
+  ArrowLeft,
+  Search,
+  Filter,
+  Plus,
+  Download,
+  Mail,
+  Phone,
+  MapPin,
   Calendar,
   Edit2,
   Trash2,
@@ -57,6 +58,8 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import Layout from "@/components/Layout";
 import { Participant } from "@/types/participants";
+import { useTabletStore } from "@/store/tabletStore";
+import { mockParticipants } from "@/data/mockdata";
 
 
 
@@ -95,7 +98,10 @@ const viewModes = [
 ];
 
 export default function ParticipantsPage() {
-  const [participants, setParticipants] = useState<Participant[]>(mockParticipants);
+  // Get participants from store
+  const { participants: storeParticipants, refreshData } = useTabletStore();
+
+  const [participants, setParticipants] = useState<Participant[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [selectedTabletStatus, setSelectedTabletStatus] = useState("all");
@@ -111,7 +117,7 @@ export default function ParticipantsPage() {
 
   // Memoized filtered participants
   const filteredParticipants = useMemo(() => {
-    let filtered = mockParticipants;
+    let filtered = storeParticipants;
 
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
@@ -157,7 +163,7 @@ export default function ParticipantsPage() {
     }
 
     return filtered;
-  }, [searchQuery, selectedStatus, selectedTabletStatus, selectedActivity, sortConfig]);
+  }, [storeParticipants, searchQuery, selectedStatus, selectedTabletStatus, selectedActivity, sortConfig]);
 
   // Paginate results
   const paginatedParticipants = useMemo(() => {
@@ -167,9 +173,12 @@ export default function ParticipantsPage() {
 
   useEffect(() => {
     setParticipants(paginatedParticipants);
-    // Reset to page 1 when filters change
-    setCurrentPage(1);
   }, [paginatedParticipants]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedStatus, selectedTabletStatus, selectedActivity]);
 
   const handleSort = (key: keyof Participant) => {
     let direction: 'asc' | 'desc' = 'asc';
@@ -197,18 +206,31 @@ export default function ParticipantsPage() {
 
   const handleRefresh = () => {
     setIsRefreshing(true);
+    refreshData();
     setTimeout(() => setIsRefreshing(false), 1000);
   };
+
+  const handleDeleteParticipant = (participantId: string, participantName: string) => {
+    if (window.confirm(`Are you sure you want to delete ${participantName}? This action cannot be undone.`)) {
+      // In a real app, this would call an API to delete the participant
+      console.log(`Deleting participant: ${participantId}`);
+      // For now, just show a success message
+      alert(`Participant ${participantName} has been deleted successfully.`);
+      // Optionally refresh the page or remove from local state
+      handleRefresh();
+    }
+  };
+
 
   const totalPages = Math.ceil(filteredParticipants.length / itemsPerPage);
 
   const stats = {
-    total: mockParticipants.length,
-    active: mockParticipants.filter(p => p.status === 'active').length,
-    pending: mockParticipants.filter(p => p.status === 'pending').length,
-    withTablets: mockParticipants.filter(p => p.tabletsIssued > 0).length,
-    tabletsActive: mockParticipants.filter(p => p.tabletStatus === 'active').length,
-    tabletsDue: mockParticipants.filter(p => {
+    total: storeParticipants.length,
+    active: storeParticipants.filter((p: Participant) => p.status === 'active').length,
+    pending: storeParticipants.filter((p: Participant) => p.status === 'pending').length,
+    withTablets: storeParticipants.filter((p: Participant) => p.tabletsIssued > 0).length,
+    tabletsActive: storeParticipants.filter((p: Participant) => p.tabletStatus === 'active').length,
+    tabletsDue: storeParticipants.filter((p: Participant) => {
       if (!p.expectedReturnDate || p.tabletStatus !== 'active') return false;
       const returnDate = new Date(p.expectedReturnDate);
       const today = new Date();
@@ -218,18 +240,18 @@ export default function ParticipantsPage() {
     }).length,
     byActivity: activityOptions.slice(1).map(activity => ({
       ...activity,
-      count: mockParticipants.filter(p => p.activity === activity.value).length
+      count: storeParticipants.filter((p: Participant) => p.activity === activity.value).length
     })),
-    byLocation: Array.from(new Set(mockParticipants.map(p => p.location))).map(location => ({
+    byLocation: Array.from(new Set(storeParticipants.map((p: Participant) => p.location))).map(location => ({
       location,
-      count: mockParticipants.filter(p => p.location === location).length
+      count: storeParticipants.filter((p: Participant) => p.location === location).length
     })),
     tabletStatus: {
-      active: mockParticipants.filter(p => p.tabletStatus === 'active').length,
-      damaged: mockParticipants.filter(p => p.tabletStatus === 'damaged').length,
-      returned: mockParticipants.filter(p => p.tabletStatus === 'returned').length,
-      lost: mockParticipants.filter(p => p.tabletStatus === 'lost').length,
-      maintenance: mockParticipants.filter(p => p.tabletStatus === 'maintenance').length,
+      active: storeParticipants.filter((p: Participant) => p.tabletStatus === 'active').length,
+      damaged: storeParticipants.filter((p: Participant) => p.tabletStatus === 'damaged').length,
+      returned: storeParticipants.filter((p: Participant) => p.tabletStatus === 'returned').length,
+      lost: storeParticipants.filter((p: Participant) => p.tabletStatus === 'lost').length,
+      maintenance: storeParticipants.filter((p: Participant) => p.tabletStatus === 'maintenance').length,
     }
   };
 
@@ -403,36 +425,45 @@ export default function ParticipantsPage() {
       <div className="space-y-4">
         {/* Header Section */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">Tablet Management</h1>
-            <p className="text-sm text-gray-600">Track tablets issued to survey participants</p>
+          <div className="flex items-center gap-4">
+            <Link
+              href="/dashboard"
+              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              title="Go Back"
+            >
+              <ArrowLeft className="w-5 h-5 text-gray-600" />
+            </Link>
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">Participant Management</h1>
+              <p className="text-sm text-gray-600">Manage participants and their tablets </p>
+            </div>
           </div>
           <div className="flex items-center space-x-2">
-            <button 
+            <button
               onClick={handleRefresh}
               disabled={isRefreshing}
-              className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg"
+              className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors border border-transparent hover:border-gray-200"
               title="Refresh"
             >
               <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
             </button>
-            <button 
+            <button
               onClick={handleExport}
-              className="flex items-center px-3 py-2 bg-gray-800 hover:bg-gray-900 text-white rounded-lg text-sm"
+              className="flex items-center px-3 py-2 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-lg text-sm transition-colors shadow-sm"
             >
               <Download className="w-4 h-4 mr-1.5" />
               Export
             </button>
-            <button 
+            <button
               onClick={handleImport}
-              className="flex items-center px-3 py-2 bg-knbs-500 hover:bg-knbs-600 text-white rounded-lg text-sm"
+              className="flex items-center px-3 py-2 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-lg text-sm transition-colors shadow-sm"
             >
               <Upload className="w-4 h-4 mr-1.5" />
               Import
             </button>
             <Link
               href="/participants/new"
-              className="flex items-center px-3 py-2 bg-knbs-600 hover:bg-knbs-700 text-white rounded-lg text-sm"
+              className="flex items-center px-3 py-2 bg-knbs-600 hover:bg-knbs-700 text-white rounded-lg text-sm shadow-sm transition-colors"
             >
               <Plus className="w-4 h-4 mr-1.5" />
               Add New
@@ -441,41 +472,64 @@ export default function ParticipantsPage() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Total Participants</p>
-                <p className="text-xl font-bold text-gray-900 mt-1">{stats.total}</p>
+                <p className="text-sm font-medium text-gray-500">Total Participants</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">{stats.total}</p>
               </div>
-              <Users className="w-5 h-5 text-gray-400" />
+              <div className="p-2 bg-gray-100 rounded-lg">
+                <Users className="w-5 h-5 text-gray-600" />
+              </div>
+            </div>
+            <div className="mt-2 text-xs text-gray-500 flex items-center">
+              <span className="text-green-600 font-medium flex items-center mr-1">
+                <Users className="w-3 h-3 mr-0.5" /> +2
+              </span>
+              this week
             </div>
           </div>
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Tablets Issued</p>
-                <p className="text-xl font-bold text-green-600 mt-1">{stats.withTablets}</p>
+                <p className="text-sm font-medium text-gray-500">Tablets Issued</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">{stats.withTablets}</p>
               </div>
-              <Tablet className="w-5 h-5 text-green-400" />
+              <div className="p-2 bg-green-50 rounded-lg">
+                <Tablet className="w-5 h-5 text-green-600" />
+              </div>
+            </div>
+            <div className="w-full bg-gray-100 rounded-full h-1.5 mt-3">
+              <div className="bg-green-500 h-1.5 rounded-full" style={{ width: `${(stats.withTablets / stats.total) * 100}%` }}></div>
             </div>
           </div>
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Due for Return</p>
-                <p className="text-xl font-bold text-yellow-600 mt-1">{stats.tabletsDue}</p>
+                <p className="text-sm font-medium text-gray-500">Due for Return</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">{stats.tabletsDue}</p>
               </div>
-              <Clock className="w-5 h-5 text-yellow-400" />
+              <div className="p-2 bg-yellow-50 rounded-lg">
+                <Clock className="w-5 h-5 text-yellow-600" />
+              </div>
+            </div>
+            <div className="mt-2 text-xs text-yellow-600 font-medium">
+              Action required for {stats.tabletsDue} items
             </div>
           </div>
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Active Tablets</p>
-                <p className="text-xl font-bold text-blue-600 mt-1">{stats.tabletsActive}</p>
+                <p className="text-sm font-medium text-gray-500">Active Tablets</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">{stats.tabletsActive}</p>
               </div>
-              <CheckCircle className="w-5 h-5 text-blue-400" />
+              <div className="p-2 bg-blue-50 rounded-lg">
+                <CheckCircle className="w-5 h-5 text-blue-600" />
+              </div>
+            </div>
+            <div className="w-full bg-gray-100 rounded-full h-1.5 mt-3">
+              <div className="bg-blue-500 h-1.5 rounded-full" style={{ width: `${(stats.tabletsActive / stats.withTablets) * 100}%` }}></div>
             </div>
           </div>
         </div>
@@ -556,51 +610,43 @@ export default function ParticipantsPage() {
           {/* Filter Options */}
           {showFilters && (
             <div className="mt-4 pt-4 border-t border-gray-100">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Participant Status</label>
-                  <div className="flex flex-wrap gap-2">
+              <div className="flex flex-col md:flex-row gap-4 items-end">
+                <div className="flex-1 w-full">
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Participant Status</label>
+                  <select
+                    value={selectedStatus}
+                    onChange={(e) => setSelectedStatus(e.target.value)}
+                    className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-knbs-500 focus:border-transparent"
+                  >
                     {statusOptions.map((option) => (
-                      <button
-                        key={option.value}
-                        onClick={() => setSelectedStatus(option.value)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                          selectedStatus === option.value
-                            ? option.color
-                            : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                        }`}
-                      >
+                      <option key={option.value} value={option.value}>
                         {option.label}
-                      </button>
+                      </option>
                     ))}
-                  </div>
+                  </select>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Tablet Status</label>
-                  <div className="flex flex-wrap gap-2">
+                <div className="flex-1 w-full">
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Tablet Status</label>
+                  <select
+                    value={selectedTabletStatus}
+                    onChange={(e) => setSelectedTabletStatus(e.target.value)}
+                    className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-knbs-500 focus:border-transparent"
+                  >
                     {tabletStatusOptions.map((option) => (
-                      <button
-                        key={option.value}
-                        onClick={() => setSelectedTabletStatus(option.value)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                          selectedTabletStatus === option.value
-                            ? option.color
-                            : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                        }`}
-                      >
+                      <option key={option.value} value={option.value}>
                         {option.label}
-                      </button>
+                      </option>
                     ))}
-                  </div>
+                  </select>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Activity</label>
+                <div className="flex-1 w-full">
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Activity</label>
                   <select
                     value={selectedActivity}
                     onChange={(e) => setSelectedActivity(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-knbs-500 focus:border-transparent text-sm"
+                    className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-knbs-500 focus:border-transparent"
                   >
                     {activityOptions.map((option) => (
                       <option key={option.value} value={option.value}>
@@ -609,18 +655,20 @@ export default function ParticipantsPage() {
                     ))}
                   </select>
                 </div>
-              </div>
-              <div className="flex justify-end mt-4">
-                <button
-                  onClick={() => {
-                    setSelectedStatus("all");
-                    setSelectedTabletStatus("all");
-                    setSelectedActivity("all");
-                  }}
-                  className="text-sm text-gray-600 hover:text-gray-900"
-                >
-                  Clear all filters
-                </button>
+
+                <div className="pb-0.5">
+                  <button
+                    onClick={() => {
+                      setSelectedStatus("all");
+                      setSelectedTabletStatus("all");
+                      setSelectedActivity("all");
+                    }}
+                    className="whitespace-nowrap px-4 py-2 text-sm text-gray-600 hover:text-gray-900 font-medium hover:bg-gray-100 rounded-lg transition-colors border border-transparent hover:border-gray-200"
+                    title="Clear all filters"
+                  >
+                    Clear Filters
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -657,69 +705,69 @@ export default function ParticipantsPage() {
 
         {/* Participants Table/Grid */}
         {viewMode === "list" ? (
-          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-4 py-3 w-10">
+                    <th className="px-6 py-4 w-10">
                       <input
                         type="checkbox"
                         checked={selectedParticipants.length === participants.length && participants.length > 0}
                         onChange={handleSelectAll}
-                        className="rounded border-gray-300 text-knbs-600 focus:ring-knbs-500 h-4 w-4"
+                        className="rounded border-gray-300 text-knbs-600 focus:ring-knbs-500 h-4 w-4 transition-colors"
                       />
                     </th>
-                    <th 
-                      className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    <th
+                      className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
                       onClick={() => handleSort('name')}
                     >
-                      <div className="flex items-center">
+                      <div className="flex items-center group">
                         Participant
-                        {sortConfig?.key === 'name' && (
-                          <ChevronDown className={`w-3 h-3 ml-1 ${sortConfig.direction === 'desc' ? 'rotate-180' : ''}`} />
-                        )}
+                        <div className={`ml-1 text-gray-400 group-hover:text-gray-600 ${sortConfig?.key === 'name' ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity`}>
+                          <ChevronDown className={`w-3 h-3 ${sortConfig?.direction === 'desc' ? 'rotate-180' : ''}`} />
+                        </div>
                       </div>
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="hidden lg:table-cell px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                       Contact
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="hidden xl:table-cell px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                       Activity & Tablet
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                       Status
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="hidden md:table-cell px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                       Return Date
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                       Actions
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
+                <tbody className="divide-y divide-gray-200 bg-white">
                   {participants.map((participant) => (
-                    <tr 
+                    <tr
                       key={participant.id}
                       className={cn(
-                        "hover:bg-gray-50",
+                        "group transition-colors hover:bg-gray-50",
                         selectedParticipants.includes(participant.id) && "bg-knbs-50",
-                        isReturnDatePassed(participant.expectedReturnDate) && "bg-red-50"
+                        isReturnDatePassed(participant.expectedReturnDate) && "bg-red-50/50"
                       )}
                     >
-                      <td className="px-4 py-3">
+                      <td className="px-6 py-4 whitespace-nowrap">
                         <input
                           type="checkbox"
                           checked={selectedParticipants.includes(participant.id)}
                           onChange={() => handleSelectParticipant(participant.id)}
-                          className="rounded border-gray-300 text-knbs-600 focus:ring-knbs-500 h-4 w-4"
+                          className="rounded border-gray-300 text-knbs-600 focus:ring-knbs-500 h-4 w-4 transition-colors"
                         />
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
-                          <div className="h-8 w-8 rounded-lg bg-knbs-100 flex items-center justify-center mr-3">
-                            <span className="text-xs font-bold text-knbs-700">
+                          <div className="h-10 w-10 rounded-full bg-gradient-to-br from-knbs-100 to-knbs-200 flex-shrink-0 flex items-center justify-center mr-4 shadow-sm border border-knbs-100">
+                            <span className="text-sm font-bold text-knbs-700">
                               {participant.name.split(' ').map(n => n[0]).join('')}
                             </span>
                           </div>
@@ -727,150 +775,150 @@ export default function ParticipantsPage() {
                             <div className="flex items-center">
                               <Link
                                 href={`/participants/${participant.id}`}
-                                className="text-sm font-medium text-gray-900 hover:text-knbs-600"
+                                className="text-sm font-medium text-gray-900 hover:text-knbs-600 transition-colors"
                               >
                                 {participant.name}
                               </Link>
-                              <span className="ml-2 px-1.5 py-0.5 text-xs font-medium bg-gray-100 text-gray-600 rounded">
-                                {participant.id}
-                              </span>
                             </div>
                             <div className="flex items-center mt-1 text-xs text-gray-500">
-                              <MapPin className="w-3 h-3 mr-1" />
-                              {participant.location} • {participant.role}
+                              <span className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-600 font-mono mr-2">
+                                {participant.id}
+                              </span>
+                              <span className="flex items-center truncate max-w-[150px]" title={participant.location}>
+                                <MapPin className="w-3 h-3 mr-1 flex-shrink-0" />
+                                {participant.location}
+                              </span>
                             </div>
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="hidden lg:table-cell px-6 py-4 whitespace-nowrap">
                         <div className="space-y-1">
-                          <div className="flex items-center text-sm text-gray-900">
-                            <Mail className="w-3 h-3 mr-2 text-gray-400" />
-                            {participant.email}
+                          <div className="flex items-center text-sm text-gray-600 group-hover:text-gray-900 transition-colors">
+                            <Mail className="w-3.5 h-3.5 mr-2 text-gray-400" />
+                            <span className="truncate max-w-[180px]" title={participant.email}>{participant.email}</span>
                           </div>
                           <div className="flex items-center text-sm text-gray-500">
-                            <Phone className="w-3 h-3 mr-2 text-gray-400" />
+                            <Phone className="w-3.5 h-3.5 mr-2 text-gray-400" />
                             {participant.phone}
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-3">
-                        <div className="space-y-1">
-                          <div className="text-sm font-medium text-gray-900">{participant.activity}</div>
+                      <td className="hidden xl:table-cell px-6 py-4 whitespace-nowrap">
+                        <div className="space-y-1.5">
+                          <div className="text-sm text-gray-900">{participant.activity}</div>
                           {participant.tabletSerial ? (
-                            <>
+                            <div className="flex flex-col gap-1">
                               <div className="flex items-center text-xs text-gray-600">
-                                <Smartphone className="w-3 h-3 mr-1" />
+                                <Smartphone className="w-3.5 h-3.5 mr-1.5 text-gray-400" />
                                 {participant.tabletModel}
                               </div>
-                              <div className="flex items-center text-xs text-gray-500">
-                                <span className="font-mono">{participant.tabletSerial}</span>
-                              </div>
-                              <div className="flex items-center text-xs text-gray-500 space-x-2">
+                              <div className="flex items-center text-xs space-x-3">
+                                <span className="font-mono text-gray-500 bg-gray-50 px-1.5 rounded border border-gray-100">
+                                  {participant.tabletSerial}
+                                </span>
                                 {participant.batteryHealth && (
-                                  <span className="flex items-center">
+                                  <span className={cn(
+                                    "flex items-center",
+                                    participant.batteryHealth < 20 ? "text-red-500" : "text-gray-500"
+                                  )}>
                                     <Battery className="w-3 h-3 mr-1" />
                                     {participant.batteryHealth}%
                                   </span>
                                 )}
-                                {participant.wifiConnected ? (
-                                  <span className="flex items-center text-green-600">
-                                    <Wifi className="w-3 h-3 mr-1" />
-                                    Online
-                                  </span>
-                                ) : (
-                                  <span className="flex items-center text-gray-400">
-                                    <WifiOff className="w-3 h-3 mr-1" />
-                                    Offline
-                                  </span>
-                                )}
                               </div>
-                            </>
+                            </div>
                           ) : (
-                            <div className="text-xs text-gray-400">No tablet assigned</div>
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                              No Device
+                            </span>
                           )}
                         </div>
                       </td>
-                      <td className="px-4 py-3">
-                        <div className="flex flex-col gap-1">
-                          <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                            participant.status === 'active' ? 'bg-green-100 text-green-800' :
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex flex-col gap-2">
+                          <div className={`inline-flex w-fit items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${participant.status === 'active' ? 'bg-green-100 text-green-800' :
                             participant.status === 'inactive' ? 'bg-red-100 text-red-800' :
-                            'bg-yellow-100 text-yellow-800'
-                          }`}>
+                              'bg-yellow-100 text-yellow-800'
+                            }`}>
                             {getStatusIcon(participant.status)}
-                            <span className="ml-1 capitalize">{participant.status}</span>
+                            <span className="ml-1.5 capitalize">{participant.status}</span>
                           </div>
-                          <div className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${getTabletStatusColor(participant.tabletStatus)}`}>
-                            {getTabletStatusIcon(participant.tabletStatus)}
-                            <span className="ml-1 capitalize">{participant.tabletStatus || 'No tablet'}</span>
-                          </div>
+                          {participant.tabletStatus && (
+                            <div className={`inline-flex w-fit items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getTabletStatusColor(participant.tabletStatus)}`}>
+                              {getTabletStatusIcon(participant.tabletStatus)}
+                              <span className="ml-1.5 capitalize">{participant.tabletStatus}</span>
+                            </div>
+                          )}
                         </div>
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="hidden md:table-cell px-6 py-4 whitespace-nowrap">
                         {participant.expectedReturnDate ? (
-                          <div className="space-y-1">
+                          <div className="flex flex-col gap-0.5">
                             <div className={cn(
-                              "text-sm font-medium",
-                              isReturnDatePassed(participant.expectedReturnDate) 
+                              "text-sm font-medium flex items-center",
+                              isReturnDatePassed(participant.expectedReturnDate)
                                 ? "text-red-600"
                                 : isReturnDateNear(participant.expectedReturnDate)
-                                ? "text-yellow-600"
-                                : "text-gray-900"
+                                  ? "text-amber-600"
+                                  : "text-gray-900"
                             )}>
+                              <Calendar className="w-3.5 h-3.5 mr-1.5" />
                               {participant.expectedReturnDate}
                             </div>
-                            <div className="flex items-center text-xs text-gray-500">
-                              <Calendar className="w-3 h-3 mr-1" />
-                              Issued: {participant.issueDate}
-                            </div>
-                            {participant.actualReturnDate && (
-                              <div className="text-xs text-green-600">
-                                Returned: {participant.actualReturnDate}
-                              </div>
-                            )}
+
                             {isReturnDatePassed(participant.expectedReturnDate) && (
-                              <div className="text-xs text-red-600 font-medium">OVERDUE</div>
+                              <span className="text-[10px] font-bold text-red-600 uppercase tracking-wider bg-red-50 px-1.5 py-0.5 rounded w-fit">
+                                Overdue
+                              </span>
                             )}
                             {isReturnDateNear(participant.expectedReturnDate) && !isReturnDatePassed(participant.expectedReturnDate) && (
-                              <div className="text-xs text-yellow-600 font-medium">Due Soon</div>
+                              <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wider bg-amber-50 px-1.5 py-0.5 rounded w-fit">
+                                Due Soon
+                              </span>
+                            )}
+                            {participant.actualReturnDate && (
+                              <span className="text-xs text-green-600 flex items-center mt-1">
+                                <CheckCircle className="w-3 h-3 mr-1" />
+                                Returned: {participant.actualReturnDate}
+                              </span>
                             )}
                           </div>
                         ) : (
-                          <div className="text-sm text-gray-400">No return date</div>
+                          <span className="text-sm text-gray-400 italic">Not scheduled</span>
                         )}
                       </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center space-x-1">
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <div className="flex items-center justify-end space-x-2">
                           <button
                             onClick={() => handleSendNotification(participant.id)}
                             className={cn(
-                              "flex items-center px-2 py-1 rounded text-xs",
+                              "p-1.5 rounded transition-colors",
                               notificationSent[participant.id]
-                                ? "bg-green-100 text-green-800"
-                                : "bg-blue-100 text-blue-800 hover:bg-blue-200"
+                                ? "text-green-600 bg-green-50"
+                                : "text-gray-400 hover:text-blue-600 hover:bg-blue-50"
                             )}
-                            title="Send return reminder"
+                            title={notificationSent[participant.id] ? "Sent" : "Notify"}
                           >
-                            <Bell className="w-3 h-3 mr-1" />
-                            {notificationSent[participant.id] ? "Sent" : "Notify"}
+                            <Bell className="w-4 h-4" />
                           </button>
                           <Link
                             href={`/participants/${participant.id}`}
-                            className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded"
-                            title="View"
+                            className="p-1.5 text-gray-400 hover:text-knbs-600 hover:bg-knbs-50 rounded transition-colors"
+                            title="View Details"
                           >
                             <Eye className="w-4 h-4" />
                           </Link>
                           <Link
                             href={`/participants/${participant.id}/edit`}
-                            className="p-1.5 text-gray-400 hover:text-knbs-600 hover:bg-knbs-50 rounded"
+                            className="p-1.5 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded transition-colors"
                             title="Edit"
                           >
                             <Edit2 className="w-4 h-4" />
                           </Link>
                           <button
-                            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded"
+                            onClick={() => handleDeleteParticipant(participant.id, participant.name)}
+                            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
                             title="Delete"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -927,16 +975,15 @@ export default function ParticipantsPage() {
                       } else {
                         pageNum = currentPage - 1 + i;
                       }
-                      
+
                       return (
                         <button
                           key={pageNum}
                           onClick={() => setCurrentPage(pageNum)}
-                          className={`px-3 py-1.5 rounded text-sm ${
-                            currentPage === pageNum
-                              ? 'bg-knbs-500 text-white'
-                              : 'border border-gray-300 hover:bg-gray-50'
-                          }`}
+                          className={`px-3 py-1.5 rounded text-sm ${currentPage === pageNum
+                            ? 'bg-knbs-500 text-white'
+                            : 'border border-gray-300 hover:bg-gray-50'
+                            }`}
                         >
                           {pageNum}
                         </button>
@@ -967,93 +1014,140 @@ export default function ParticipantsPage() {
           </div>
         ) : (
           // Grid View
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {participants.map((participant) => (
               <div
                 key={participant.id}
                 className={cn(
-                  "bg-white rounded-lg border border-gray-200 p-4",
-                  isReturnDatePassed(participant.expectedReturnDate) && "border-red-200 bg-red-50"
+                  "group bg-white rounded-xl border p-4 transition-all duration-200 hover:shadow-md",
+                  isReturnDatePassed(participant.expectedReturnDate)
+                    ? "border-red-200 bg-red-50/30"
+                    : "border-gray-200 hover:border-knbs-200"
                 )}
               >
-                <div className="flex items-start justify-between mb-3">
+                <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center">
-                    <div className="h-10 w-10 rounded-lg bg-knbs-100 flex items-center justify-center mr-3">
+                    <div className="h-12 w-12 rounded-full bg-gradient-to-br from-knbs-100 to-knbs-200 flex items-center justify-center mr-3 shadow-sm border border-knbs-100">
                       <span className="text-sm font-bold text-knbs-700">
                         {participant.name.split(' ').map(n => n[0]).join('')}
                       </span>
                     </div>
                     <div>
-                      <h3 className="font-medium text-gray-900">{participant.name}</h3>
-                      <p className="text-xs text-gray-500">{participant.id}</p>
+                      <h3 className="font-semibold text-gray-900 line-clamp-1" title={participant.name}>{participant.name}</h3>
+                      <div className="flex items-center mt-0.5">
+                        <span className="text-[10px] font-mono text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200/50">
+                          {participant.id}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                  <div className={`p-1.5 rounded ${
-                    participant.status === 'active' ? 'bg-green-50 text-green-600' :
-                    participant.status === 'inactive' ? 'bg-red-50 text-red-600' :
-                    'bg-yellow-50 text-yellow-600'
-                  }`}>
-                    {getStatusIcon(participant.status)}
-                  </div>
-                </div>
-                
-                <div className="space-y-2 mb-4">
-                  <div className="flex items-center text-sm text-gray-600">
-                    <Mail className="w-3 h-3 mr-2" />
-                    {participant.email}
-                  </div>
-                  <div className="flex items-center text-sm text-gray-600">
-                    <Phone className="w-3 h-3 mr-2" />
-                    {participant.phone}
-                  </div>
-                  <div className="flex items-center text-sm text-gray-600">
-                    <MapPin className="w-3 h-3 mr-2" />
-                    {participant.location}
-                  </div>
-                  {participant.tabletModel && (
-                    <div className="flex items-center text-sm text-gray-600">
-                      <Tablet className="w-3 h-3 mr-2" />
-                      {participant.tabletModel}
+                  <div className="flex flex-col items-end gap-1.5">
+                    <div className={`p-1.5 rounded-lg shadow-sm ${participant.status === 'active' ? 'bg-green-100 text-green-700' :
+                      participant.status === 'inactive' ? 'bg-red-100 text-red-700' :
+                        'bg-yellow-100 text-yellow-700'
+                      }`}>
+                      {getStatusIcon(participant.status)}
                     </div>
-                  )}
-                </div>
-                
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">{participant.activity}</p>
-                    <p className="text-xs text-gray-500">
-                      {participant.expectedReturnDate ? `Due: ${participant.expectedReturnDate}` : 'No return date'}
-                    </p>
-                  </div>
-                  <div className={`px-2 py-1 rounded text-xs font-medium ${getTabletStatusColor(participant.tabletStatus)}`}>
-                    {participant.tabletStatus || 'No tablet'}
                   </div>
                 </div>
-                
-                <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                  <button
-                    onClick={() => handleSendNotification(participant.id)}
-                    className={cn(
-                      "text-sm flex items-center",
-                      notificationSent[participant.id]
-                        ? "text-green-600"
-                        : "text-knbs-600 hover:text-knbs-700"
+
+                <div className="space-y-2.5 mb-4">
+                  <div className="flex items-center text-sm text-gray-600">
+                    <div className="w-8 flex justify-center mr-1">
+                      <Mail className="w-3.5 h-3.5 text-gray-400" />
+                    </div>
+                    <span className="truncate" title={participant.email}>{participant.email}</span>
+                  </div>
+                  <div className="flex items-center text-sm text-gray-600">
+                    <div className="w-8 flex justify-center mr-1">
+                      <Phone className="w-3.5 h-3.5 text-gray-400" />
+                    </div>
+                    <span className="truncate">{participant.phone}</span>
+                  </div>
+                  <div className="flex items-center text-sm text-gray-600">
+                    <div className="w-8 flex justify-center mr-1">
+                      <MapPin className="w-3.5 h-3.5 text-gray-400" />
+                    </div>
+                    <span className="truncate">{participant.location}</span>
+                  </div>
+
+                  <div className="pt-2 mt-2 border-t border-gray-100">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-xs text-gray-500 font-medium uppercase tracking-wide">Device</span>
+                      {participant.tabletStatus ? (
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${getTabletStatusColor(participant.tabletStatus)}`}>
+                          {participant.tabletStatus}
+                        </span>
+                      ) : (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded font-medium bg-gray-100 text-gray-500">None</span>
+                      )}
+                    </div>
+
+                    {participant.tabletModel ? (
+                      <div className="bg-gray-50 rounded-lg p-2.5 border border-gray-100">
+                        <div className="flex items-center text-sm text-gray-700 font-medium mb-1">
+                          <Tablet className="w-3.5 h-3.5 mr-2 text-gray-400" />
+                          <span className="truncate">{participant.tabletModel}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-mono text-gray-500">{participant.tabletSerial}</span>
+                          {participant.batteryHealth && (
+                            <span className={cn(
+                              "flex items-center text-[10px]",
+                              participant.batteryHealth < 20 ? "text-red-600 font-bold" : "text-gray-500"
+                            )}>
+                              <Battery className="w-3 h-3 mr-1" />
+                              {participant.batteryHealth}%
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="bg-gray-50/50 rounded-lg p-3 border border-gray-100 border-dashed text-center">
+                        <span className="text-xs text-gray-400 italic">No tablet assigned</span>
+                      </div>
                     )}
-                  >
-                    <Bell className="w-3 h-3 mr-1" />
-                    {notificationSent[participant.id] ? "Notification Sent" : "Send Reminder"}
-                  </button>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                  <div className="flex items-center">
+                    {participant.expectedReturnDate && (
+                      <div className="flex flex-col">
+                        <span className="text-[10px] text-gray-400 uppercase font-medium">Due Date</span>
+                        <span className={cn(
+                          "text-xs font-medium",
+                          isReturnDatePassed(participant.expectedReturnDate) ? "text-red-600" : "text-gray-700"
+                        )}>
+                          {participant.expectedReturnDate}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
                   <div className="flex items-center space-x-1">
+                    <button
+                      onClick={() => handleSendNotification(participant.id)}
+                      className={cn(
+                        "p-2 rounded-lg transition-colors border",
+                        notificationSent[participant.id]
+                          ? "bg-green-50 text-green-600 border-green-100"
+                          : "bg-white text-gray-400 border-transparent hover:border-gray-200 hover:text-knbs-600"
+                      )}
+                      title={notificationSent[participant.id] ? "Notification Sent" : "Send Reminder"}
+                    >
+                      <Bell className="w-4 h-4" />
+                    </button>
                     <Link
                       href={`/participants/${participant.id}`}
-                      className="p-1 text-gray-400 hover:text-blue-600"
-                      title="View"
+                      className="p-2 text-gray-400 bg-white hover:text-blue-600 hover:bg-blue-50 border border-transparent hover:border-blue-100 rounded-lg transition-all"
+                      title="View Details"
                     >
                       <Eye className="w-4 h-4" />
                     </Link>
                     <Link
                       href={`/participants/${participant.id}/edit`}
-                      className="p-1 text-gray-400 hover:text-knbs-600"
+                      className="p-2 text-gray-400 bg-white hover:text-amber-600 hover:bg-amber-50 border border-transparent hover:border-amber-100 rounded-lg transition-all"
                       title="Edit"
                     >
                       <Edit2 className="w-4 h-4" />

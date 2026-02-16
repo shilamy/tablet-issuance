@@ -1,3 +1,4 @@
+
 export interface Participant {
   id: string;
   name: string;
@@ -7,9 +8,11 @@ export interface Participant {
   status: "active" | "inactive" | "pending";
   activity: string;
   tabletsIssued: number;
+  tabletsReturned?: number;
   lastActivity: string;
   contractStatus: "active" | "expired" | "none";
   joinDate: string;
+  contractEndDate?: string;
   role?: string;
   // Tablet-specific fields
   tabletSerial?: string;

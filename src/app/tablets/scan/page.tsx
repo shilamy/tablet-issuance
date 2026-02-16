@@ -1,21 +1,21 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { 
+import { useState, useRef, useEffect } from "react";
+import {
   QrCode, Barcode, Camera, ChevronLeft, RefreshCw,
-  Search, CheckCircle, XCircle, AlertCircle, 
-  Download, Upload, Tablet, Package, MapPin,
-  History, Settings, Zap, Battery, Users,
-  Scan, StopCircle, Maximize2, Minimize2
+  Search, CheckCircle, XCircle, AlertCircle,
+  Download, History, Scan, StopCircle, Maximize2, Minimize2,
+  CameraOff, ScanLine, ScanFace, ScanText, Zap, ChevronDown, ChevronUp, ChevronRight,
+  Tablet
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Layout from "@/components/Layout";
 import { ScanResult } from "@/types/tablets";
+import Scanner from "@/components/Scanner";
 
 export default function ScanPage() {
   const router = useRouter();
-  const videoRef = useRef<HTMLVideoElement>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [scanMode, setScanMode] = useState<'barcode' | 'qr'>('barcode');
   const [scanResults, setScanResults] = useState<ScanResult[]>([]);
@@ -23,85 +23,119 @@ export default function ScanPage() {
   const [scannerSettings, setScannerSettings] = useState({
     audioFeedback: true,
     vibration: true,
-    autoFocus: true,
-    torch: false,
     zoom: 1,
-    resolution: 'hd',
   });
   const [showHistory, setShowHistory] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
+  const [availableCameras, setAvailableCameras] = useState<MediaDeviceInfo[]>([]);
+  const [currentTime, setCurrentTime] = useState<string>("");
 
-  // Mock tablet data for scanning
-  const mockTablets = [
-    { deviceId: "KNBS-TAB-001", model: "Samsung Galaxy Tab A8", status: "available", battery: 85 },
-    { deviceId: "KNBS-TAB-002", model: "Lenovo Tab M10", status: "issued", battery: 45 },
-    { deviceId: "KNBS-TAB-003", model: "iPad 9th Gen", status: "damaged", battery: 0 },
-    { deviceId: "KNBS-TAB-004", model: "Samsung Galaxy Tab S6 Lite", status: "available", battery: 92 },
-    { deviceId: "KNBS-TAB-005", model: "Lenovo Tab P11", status: "missing", battery: 0 },
-  ];
+  const manualInputRef = useRef<HTMLInputElement>(null);
 
-  // Simulate scanner initialization
+  // Initialize time and cameras
   useEffect(() => {
-    if (isScanning) {
-      // In a real app, this would initialize the camera/scanner
-      console.log(`Initializing ${scanMode} scanner...`);
-      
-      // Simulate scanning for demo
-      const interval = setInterval(() => {
-        if (Math.random() > 0.7) {
-          simulateScan();
+    // Set current time on client only
+    const updateTime = () => {
+      setCurrentTime(new Date().toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      }));
+    };
+
+    updateTime();
+    const interval = setInterval(updateTime, 1000);
+
+    // Check for available cameras
+    const getCameras = async () => {
+      try {
+        if (navigator?.mediaDevices?.enumerateDevices) {
+          const devices = await navigator.mediaDevices.enumerateDevices();
+          const videoInput = devices.filter(device => device.kind === 'videoinput');
+          setAvailableCameras(videoInput);
         }
-      }, 2000);
+      } catch (err) {
+        console.error("Error enumerating cameras:", err);
+      }
+    };
+    getCameras();
 
-      return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+    };
+  }, []);
+
+  // Initialize scanning on mount (optional, matches other page?)
+  // Actually the other page starts scanning on mount. Let's do that for consistency unless manual start is preferred.
+  // The previous implementation had manual start/stop button but defaulted to false? 
+  // Let's default to false to let user choose, but maybe auto-start is better for UX.
+  // I'll keep it false initially to match previous logic but give clear UI to start.
+  // Wait, the other page (issuance) starts automatically. Uniformity suggests auto-start.
+  useEffect(() => {
+    setIsScanning(true);
+  }, []);
+
+  // Focus manual input when camera is off
+  useEffect(() => {
+    if (!isScanning && manualInputRef.current) {
+      manualInputRef.current.focus();
     }
-  }, [isScanning, scanMode]);
+  }, [isScanning]);
 
-  const simulateScan = () => {
-    const device = mockTablets[Math.floor(Math.random() * mockTablets.length)];
+  const onScanSuccess = (decodedText: string) => {
+    // Play sound if enabled
+    if (scannerSettings.audioFeedback) {
+      const audio = new Audio('/audio/beep.mp3');
+      audio.play().catch(e => console.log("Audio play failed", e));
+    }
+
+    // Vibrate if enabled
+    if (scannerSettings.vibration && navigator.vibrate) {
+      navigator.vibrate(200);
+    }
+
+    // Process result
+    const isTabletId = decodedText.includes('TAB') || decodedText.includes('KNBS');
+
     const result: ScanResult = {
       type: scanMode,
-      value: device.deviceId,
+      value: decodedText,
       timestamp: new Date().toISOString(),
-      deviceId: device.deviceId,
-      status: 'success',
-      message: `Found: ${device.model} (${device.status}, ${device.battery}% battery)`
+      deviceId: isTabletId ? decodedText : undefined,
+      status: isTabletId ? 'success' : 'error',
+      message: isTabletId
+        ? `Valid Tablet ID detected: ${decodedText}`
+        : `Scanned code: ${decodedText} (Not a recognized Tablet ID format)`
     };
-    
+
     setScanResults(prev => [result, ...prev]);
-    
-    if (scannerSettings.audioFeedback) {
-      // Play success sound
-      new Audio('/audio/beep.mp3').play().catch(() => {});
-    }
+
+    // Pause scanning briefly to avoid duplicates
+    setIsScanning(false);
+    setTimeout(() => {
+      setIsScanning(true);
+    }, 1500);
   };
 
   const handleManualSubmit = () => {
     if (manualInput.trim()) {
-      const found = mockTablets.find(t => t.deviceId === manualInput);
+      // Simulate a scan result
+      const isTabletId = manualInput.includes('TAB') || manualInput.includes('KNBS');
+
       const result: ScanResult = {
-        type: 'barcode',
+        type: 'barcode', // weak assumption
         value: manualInput,
         timestamp: new Date().toISOString(),
         deviceId: manualInput,
-        status: found ? 'success' : 'error',
-        message: found 
-          ? `Found: ${found.model} (${found.status})`
-          : `Device ${manualInput} not found in database`
+        status: isTabletId ? 'success' : 'error',
+        message: isTabletId
+          ? `Manually entered: ${manualInput}`
+          : `Entry ${manualInput} may not be a valid ID`
       };
-      
+
       setScanResults(prev => [result, ...prev]);
       setManualInput("");
     }
-  };
-
-  const handleStartScan = () => {
-    setIsScanning(true);
-    // Request camera permissions in real app
-  };
-
-  const handleStopScan = () => {
-    setIsScanning(false);
   };
 
   const handleClearHistory = () => {
@@ -116,7 +150,7 @@ export default function ScanPage() {
       status: r.status,
       message: r.message
     }));
-    
+
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -129,479 +163,333 @@ export default function ScanPage() {
     totalScans: scanResults.length,
     successful: scanResults.filter(r => r.status === 'success').length,
     errors: scanResults.filter(r => r.status === 'error').length,
-    duplicates: scanResults.filter((r, i, arr) => 
-      arr.findIndex(a => a.deviceId === r.deviceId) !== i
+    duplicates: scanResults.filter((r, i, arr) =>
+      arr.findIndex(a => a.value === r.value) !== i
     ).length,
+  };
+
+  // Format time for history - client-side only
+  const formatTime = (isoString: string) => {
+    if (typeof window === 'undefined') return '';
+    return new Date(isoString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
   return (
     <Layout>
-      <div className="space-y-6">
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white">
         {/* Header */}
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-          <div className="flex items-center space-x-4">
-            <Link
-              href="/tablets"
-              className="p-2 hover:bg-gray-100 rounded-lg"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </Link>
+        <div className="p-4 md:p-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Tablet Scanner</h1>
-              <p className="text-gray-600">Scan barcodes and QR codes for tablet inventory</p>
+              <Link
+                href="/tablets"
+                className="inline-flex items-center gap-2 text-gray-300 hover:text-white group mb-3"
+              >
+                <ChevronLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+                Back to Inventory
+              </Link>
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-gradient-to-r from-purple-500/20 to-blue-500/20 rounded-xl">
+                  {scanMode === 'barcode' ? <Barcode className="w-6 h-6" /> : <QrCode className="w-6 h-6" />}
+                </div>
+                <h1 className="text-3xl font-bold">Tablet Scanner</h1>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 bg-white/10 rounded-lg px-3 py-2">
+                <div className={`w-2 h-2 rounded-full ${isScanning ? 'bg-green-500 animate-pulse' : 'bg-gray-500'}`}></div>
+                <span className="text-sm">
+                  {isScanning ? 'Scanning...' : 'Scanner Paused'}
+                </span>
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setIsScanning(!isScanning)}
+                  className="p-2.5 bg-white/10 rounded-lg hover:bg-white/20 transition-colors"
+                  title={isScanning ? 'Pause Scanner' : 'Resume Scanner'}
+                >
+                  {isScanning ? <CameraOff className="w-5 h-5" /> : <Camera className="w-5 h-5" />}
+                </button>
+                <button
+                  onClick={() => router.refresh()}
+                  className="p-2.5 bg-white/10 rounded-lg hover:bg-white/20 transition-colors"
+                  title="Refresh Page"
+                >
+                  <RefreshCw className="w-5 h-5" />
+                </button>
+              </div>
             </div>
           </div>
-          <div className="flex items-center space-x-3">
+
+          {/* Mode Selector */}
+          <div className="flex flex-wrap gap-2 mb-8">
             <button
-              onClick={() => router.refresh()}
-              className="p-2 hover:bg-gray-100 rounded-lg"
+              onClick={() => setScanMode('barcode')}
+              className={`px-4 py-2.5 rounded-lg font-medium transition-all flex items-center gap-2 ${scanMode === 'barcode'
+                ? 'bg-gradient-to-r from-blue-500 to-indigo-600 shadow-lg'
+                : 'bg-white/10 hover:bg-white/20'
+                }`}
             >
-              <RefreshCw className="w-5 h-5" />
+              <Barcode className="w-4 h-4" />
+              Barcode Mode
             </button>
             <button
-              onClick={() => setShowHistory(!showHistory)}
-              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm"
+              onClick={() => setScanMode('qr')}
+              className={`px-4 py-2.5 rounded-lg font-medium transition-all flex items-center gap-2 ${scanMode === 'qr'
+                ? 'bg-gradient-to-r from-blue-500 to-indigo-600 shadow-lg'
+                : 'bg-white/10 hover:bg-white/20'
+                }`}
             >
-              <History className="w-4 h-4 inline mr-2" />
-              History
+              <QrCode className="w-4 h-4" />
+              QR Code Mode
             </button>
+          </div>
+
+          {/* Scanner Status */}
+          <div className="text-center mb-6">
+            <p className="text-gray-300 text-lg">
+              Scan {scanMode === 'barcode' ? 'barcodes' : 'QR codes'} to verify tablet inventory
+            </p>
+            <p className="text-sm text-gray-400 mt-2">
+              Ensure proper lighting and hold code steady
+            </p>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column - Scanner */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Scanner View */}
-            <div className={`bg-gray-900 rounded-xl overflow-hidden ${fullscreen ? 'fixed inset-0 z-50' : ''}`}>
-              <div className="p-4 bg-gray-800 flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className={`p-2 rounded ${scanMode === 'barcode' ? 'bg-blue-500' : 'bg-gray-700'}`}>
-                    <Barcode className="w-5 h-5 text-white" />
+        {/* Main Scanner Area */}
+        <div className="max-w-6xl mx-auto px-4 pb-8">
+          <div className="grid lg:grid-cols-3 gap-8">
+            {/* Scanner Column (2/3 width) */}
+            <div className="lg:col-span-2">
+              <div className={`bg-gradient-to-br from-gray-800/50 to-gray-900/50 backdrop-blur-sm rounded-2xl p-4 md:p-6 border border-gray-700/50 ${fullscreen ? 'fixed inset-0 z-50 m-0 rounded-none h-screen bg-black' : ''}`}>
+
+                {/* Fullscreen Controls */}
+                {fullscreen && (
+                  <div className="absolute top-4 right-4 z-50">
+                    <button
+                      onClick={() => setFullscreen(false)}
+                      className="p-2 bg-black/50 text-white rounded-lg backdrop-blur-sm"
+                    >
+                      <Minimize2 className="w-6 h-6" />
+                    </button>
                   </div>
-                  <div className={`p-2 rounded ${scanMode === 'qr' ? 'bg-blue-500' : 'bg-gray-700'}`}>
-                    <QrCode className="w-5 h-5 text-white" />
-                  </div>
-                  <span className="text-white font-medium">
-                    {scanMode === 'barcode' ? 'Barcode Scanner' : 'QR Code Scanner'}
-                  </span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() => setFullscreen(!fullscreen)}
-                    className="p-2 text-white hover:bg-gray-700 rounded"
-                  >
-                    {fullscreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
-                  </button>
-                  <button
-                    onClick={() => setScannerSettings(prev => ({ ...prev, torch: !prev.torch }))}
-                    className={`p-2 rounded ${scannerSettings.torch ? 'bg-yellow-500' : 'bg-gray-700'}`}
-                  >
-                    <Zap className="w-5 h-5 text-white" />
-                  </button>
-                </div>
-              </div>
-              
-              <div className="relative h-96 flex items-center justify-center">
-                {/* Scanner Visualization */}
-                <div className="absolute inset-0 flex items-center justify-center">
-                  {isScanning ? (
-                    <div className="text-center">
-                      <div className="relative">
-                        {/* Scanner animation */}
-                        <div className="w-64 h-1 bg-blue-500 animate-pulse rounded-full"></div>
-                        <div className="w-64 h-64 border-2 border-blue-400 rounded-lg mt-4 relative overflow-hidden">
-                          {/* Scanning lines */}
-                          <div className="absolute top-0 left-0 right-0 h-1 bg-blue-500 animate-scan"></div>
-                          <div className="absolute top-1/3 left-0 right-0 h-1 bg-blue-500 animate-scan-delay"></div>
-                          <div className="absolute top-2/3 left-0 right-0 h-1 bg-blue-500 animate-scan-delay-2"></div>
-                          
-                          {/* Corners */}
-                          <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-blue-400"></div>
-                          <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-blue-400"></div>
-                          <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-blue-400"></div>
-                          <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-blue-400"></div>
-                        </div>
-                      </div>
-                      <p className="text-white mt-4">Align {scanMode === 'barcode' ? 'barcode' : 'QR code'} within frame</p>
-                    </div>
-                  ) : (
-                    <div className="text-center">
-                      <div className="w-64 h-64 border-2 border-dashed border-gray-700 rounded-lg flex items-center justify-center">
-                        <Camera className="w-16 h-16 text-gray-600" />
-                      </div>
-                      <p className="text-gray-400 mt-4">Scanner inactive</p>
+                )}
+
+                <div className="relative rounded-xl overflow-hidden min-h-[400px]">
+                  {!fullscreen && (
+                    <div className="absolute top-2 right-2 z-10">
+                      <button
+                        onClick={() => setFullscreen(true)}
+                        className="p-2 bg-black/30 text-white hover:bg-black/50 rounded-lg backdrop-blur-sm transition-colors"
+                        title="Fullscreen"
+                      >
+                        <Maximize2 className="w-5 h-5" />
+                      </button>
                     </div>
                   )}
-                </div>
-                
-                {/* Stats overlay */}
-                <div className="absolute top-4 left-4 bg-black bg-opacity-50 text-white px-3 py-2 rounded-lg">
-                  <div className="flex items-center space-x-4">
-                    <div className="text-center">
-                      <div className="text-xl font-bold">{stats.totalScans}</div>
-                      <div className="text-xs">Total</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-xl font-bold text-green-400">{stats.successful}</div>
-                      <div className="text-xs">Success</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-xl font-bold text-red-400">{stats.errors}</div>
-                      <div className="text-xs">Errors</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="p-4 bg-gray-800 flex items-center justify-between">
-                {isScanning ? (
-                  <button
-                    onClick={handleStopScan}
-                    className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg flex items-center"
-                  >
-                    <StopCircle className="w-5 h-5 mr-2" />
-                    Stop Scanning
-                  </button>
-                ) : (
-                  <button
-                    onClick={handleStartScan}
-                    className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center"
-                  >
-                    <Scan className="w-5 h-5 mr-2" />
-                    Start Scanning
-                  </button>
-                )}
-                
-                <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() => setScanMode('barcode')}
-                    className={`px-4 py-2 rounded ${scanMode === 'barcode' ? 'bg-blue-500 text-white' : 'bg-gray-700 text-gray-300'}`}
-                  >
-                    Barcode
-                  </button>
-                  <button
-                    onClick={() => setScanMode('qr')}
-                    className={`px-4 py-2 rounded ${scanMode === 'qr' ? 'bg-blue-500 text-white' : 'bg-gray-700 text-gray-300'}`}
-                  >
-                    QR Code
-                  </button>
-                </div>
-              </div>
-            </div>
 
-            {/* Manual Input */}
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <h3 className="font-medium text-gray-900 mb-4">Manual Entry</h3>
-              <div className="flex space-x-3">
-                <div className="flex-1">
-                  <input
-                    type="text"
-                    value={manualInput}
-                    onChange={(e) => setManualInput(e.target.value)}
-                    placeholder="Enter device ID or barcode manually"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    onKeyDown={(e) => e.key === 'Enter' && handleManualSubmit()}
+                  <Scanner
+                    isScanning={isScanning}
+                    setIsScanning={setIsScanning}
+                    onScanSuccess={onScanSuccess}
+                    scanMode={scanMode}
+                    className="h-full min-h-[400px]"
                   />
-                </div>
-                <button
-                  onClick={handleManualSubmit}
-                  className="px-6 py-3 bg-gray-800 hover:bg-gray-900 text-white rounded-lg"
-                >
-                  Submit
-                </button>
-              </div>
-              <p className="text-sm text-gray-500 mt-2">
-                Press Enter or click Submit to manually add a scan
-              </p>
-            </div>
 
-            {/* Scanner Settings */}
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <h3 className="font-medium text-gray-900 mb-4 flex items-center">
-                <Settings className="w-5 h-5 mr-2" />
-                Scanner Settings
-              </h3>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {Object.entries(scannerSettings).map(([key, value]) => (
-                  <label
-                    key={key}
-                    className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer"
-                  >
-                    <div className="flex items-center">
-                      <input
-                        type={typeof value === 'boolean' ? 'checkbox' : 'range'}
-                        checked={typeof value === 'boolean' ? value : undefined}
-                        value={typeof value === 'number' ? value : undefined}
-                        onChange={(e) => setScannerSettings(prev => ({
-                          ...prev,
-                          [key]: typeof value === 'boolean' ? e.target.checked : e.target.value
-                        }))}
-                        className={typeof value === 'boolean' 
-                          ? 'h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500'
-                          : 'w-full'
-                        }
-                      />
-                      <span className="ml-3 text-sm text-gray-700 capitalize">
-                        {key.replace(/([A-Z])/g, ' $1').trim()}
-                      </span>
+                  {/* Stats Overlay (on top of scanner) */}
+                  <div className="absolute top-4 left-4 flex gap-4 pointer-events-none">
+                    <div className="bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/10">
+                      <div className="text-xs text-gray-400 uppercase tracking-wider">Total</div>
+                      <div className="text-lg font-bold">{stats.totalScans}</div>
                     </div>
-                    {typeof value === 'boolean' && (
-                      <span className="text-xs text-gray-500">{value ? 'On' : 'Off'}</span>
-                    )}
-                  </label>
-                ))}
-              </div>
-            </div>
-          </div>
+                    <div className="bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/10">
+                      <div className="text-xs text-green-400 uppercase tracking-wider">Success</div>
+                      <div className="text-lg font-bold text-green-400">{stats.successful}</div>
+                    </div>
+                  </div>
+                </div>
 
-          {/* Right Column - Results & Actions */}
-          <div className="space-y-6">
-            {/* Quick Actions */}
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <h2 className="text-lg font-bold text-gray-900 mb-4">Quick Actions</h2>
-              
-              <div className="space-y-3">
-                <button
-                  onClick={handleExportScans}
-                  disabled={scanResults.length === 0}
-                  className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-medium rounded-lg flex items-center justify-center disabled:opacity-50"
-                >
-                  <Download className="w-5 h-5 mr-2" />
-                  Export Scan Results
-                </button>
-                
-                <button
-                  onClick={handleClearHistory}
-                  disabled={scanResults.length === 0}
-                  className="w-full py-3 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 flex items-center justify-center disabled:opacity-50"
-                >
-                  <XCircle className="w-5 h-5 mr-2" />
-                  Clear History
-                </button>
-                
-                <button
-                  onClick={() => {
-                    // Bulk process scanned items
-                    const devices = scanResults
-                      .filter(r => r.status === 'success')
-                      .map(r => r.deviceId);
-                    alert(`Processing ${devices.length} scanned devices...`);
-                  }}
-                  disabled={scanResults.filter(r => r.status === 'success').length === 0}
-                  className="w-full py-3 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 flex items-center justify-center disabled:opacity-50"
-                >
-                  <Package className="w-5 h-5 mr-2" />
-                  Process Scanned ({scanResults.filter(r => r.status === 'success').length})
-                </button>
-                
-                <button
-                  onClick={() => {
-                    // Upload scan file
-                    alert("Upload scan file functionality");
-                  }}
-                  className="w-full py-3 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 flex items-center justify-center"
-                >
-                  <Upload className="w-5 h-5 mr-2" />
-                  Upload Scan File
-                </button>
-              </div>
-            </div>
+                {/* Manual Input Fallback */}
+                <div className={`mt-8 bg-gray-800/30 backdrop-blur-sm rounded-xl p-6 ${fullscreen ? 'hidden' : ''}`}>
+                  <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
+                    <Search className="w-5 h-5" />
+                    Manual Entry
+                  </h3>
+                  <div className="flex gap-2">
+                    <input
+                      ref={manualInputRef}
+                      type="text"
+                      value={manualInput}
+                      onChange={(e) => setManualInput(e.target.value)}
+                      placeholder="Enter device ID manually"
+                      className="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      onKeyDown={(e) => e.key === 'Enter' && handleManualSubmit()}
+                    />
+                    <button
+                      onClick={handleManualSubmit}
+                      disabled={!manualInput.trim()}
+                      className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:from-gray-700 disabled:to-gray-700 disabled:cursor-not-allowed rounded-lg font-medium"
+                    >
+                      Submit
+                    </button>
+                  </div>
+                </div>
 
-            {/* Recent Scans */}
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-medium text-gray-900">Recent Scans</h3>
-                <span className="text-sm text-gray-600">{scanResults.length} total</span>
-              </div>
-              
-              <div className="space-y-3 max-h-96 overflow-y-auto">
-                {scanResults.slice(0, 5).map((result, index) => (
-                  <div
-                    key={index}
-                    className={`p-3 rounded-lg border ${
-                      result.status === 'success' 
-                        ? 'border-green-200 bg-green-50' 
-                        : 'border-red-200 bg-red-50'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center">
-                        {result.status === 'success' ? (
-                          <CheckCircle className="w-4 h-4 text-green-600 mr-2" />
-                        ) : (
-                          <AlertCircle className="w-4 h-4 text-red-600 mr-2" />
-                        )}
-                        <span className="font-medium text-gray-900">{result.deviceId}</span>
+                {/* Scan History List (Preview) */}
+                {scanResults.length > 0 && !fullscreen && (
+                  <div className="mt-6 bg-gray-800/30 backdrop-blur-sm rounded-xl p-4">
+                    <button
+                      onClick={() => setShowHistory(!showHistory)}
+                      className="w-full flex items-center justify-between text-left"
+                    >
+                      <div className="flex items-center gap-2">
+                        <History className="w-4 h-4" />
+                        <span className="font-medium">Recent Scans ({scanResults.length})</span>
                       </div>
-                      <span className="text-xs text-gray-500">
-                        {new Date(result.timestamp).toLocaleTimeString()}
-                      </span>
-                    </div>
-                    <div className="text-sm text-gray-600">{result.message}</div>
-                    <div className="text-xs text-gray-500 mt-2 flex items-center">
-                      {result.type === 'barcode' ? (
-                        <Barcode className="w-3 h-3 mr-1" />
-                      ) : (
-                        <QrCode className="w-3 h-3 mr-1" />
-                      )}
-                      {result.type.toUpperCase()}
-                    </div>
-                  </div>
-                ))}
-                
-                {scanResults.length === 0 && (
-                  <div className="text-center py-8">
-                    <Scan className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                    <p className="text-gray-600">No scans yet</p>
-                    <p className="text-sm text-gray-500 mt-1">Start scanning to see results here</p>
-                  </div>
-                )}
-              </div>
-            </div>
+                      {showHistory ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                    </button>
 
-            {/* Scan Statistics */}
-            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6">
-              <h3 className="font-medium text-gray-900 mb-4">Scan Statistics</h3>
-              
-              <div className="space-y-4">
-                <div>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span className="text-gray-600">Success Rate</span>
-                    <span className="font-medium">
-                      {stats.totalScans > 0 
-                        ? `${Math.round((stats.successful / stats.totalScans) * 100)}%` 
-                        : '0%'}
-                    </span>
-                  </div>
-                  <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-green-500 rounded-full"
-                      style={{ width: `${stats.totalScans > 0 ? (stats.successful / stats.totalScans) * 100 : 0}%` }}
-                    ></div>
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-gray-900">{stats.totalScans}</div>
-                    <div className="text-sm text-gray-600">Total Scans</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-gray-900">{stats.duplicates}</div>
-                    <div className="text-sm text-gray-600">Duplicates</div>
-                  </div>
-                </div>
-                
-                <div className="pt-4 border-t border-blue-200">
-                  <div className="text-sm text-gray-600">Last Scan</div>
-                  <div className="font-medium text-gray-900">
-                    {scanResults.length > 0 
-                      ? new Date(scanResults[0].timestamp).toLocaleString() 
-                      : 'No scans yet'}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* History Panel */}
-        {showHistory && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
-              <div className="p-6 border-b border-gray-200 flex items-center justify-between">
-                <h3 className="text-lg font-bold text-gray-900">Scan History</h3>
-                <button
-                  onClick={() => setShowHistory(false)}
-                  className="p-2 hover:bg-gray-100 rounded-lg"
-                >
-                  <XCircle className="w-5 h-5" />
-                </button>
-              </div>
-              
-              <div className="p-6 max-h-[70vh] overflow-y-auto">
-                {scanResults.length === 0 ? (
-                  <div className="text-center py-12">
-                    <History className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                    <p className="text-gray-600">No scan history available</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {scanResults.map((result, index) => (
-                      <div
-                        key={index}
-                        className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50"
-                      >
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center">
-                            {result.status === 'success' ? (
-                              <CheckCircle className="w-5 h-5 text-green-500 mr-2" />
-                            ) : (
-                              <AlertCircle className="w-5 h-5 text-red-500 mr-2" />
-                            )}
-                            <div>
-                              <div className="font-medium text-gray-900">{result.deviceId}</div>
-                              <div className="text-sm text-gray-600">
-                                {new Date(result.timestamp).toLocaleString()}
+                    {showHistory && (
+                      <div className="mt-4 space-y-2 max-h-60 overflow-y-auto">
+                        {scanResults.map((result, index) => (
+                          <div
+                            key={index}
+                            className={`flex items-center justify-between p-3 rounded-lg hover:bg-gray-700/50 border ${result.status === 'success' ? 'bg-green-500/10 border-green-500/20' : 'bg-red-500/10 border-red-500/20'}`}
+                          >
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                {result.status === 'success' ? <CheckCircle className="w-4 h-4 text-green-500" /> : <AlertCircle className="w-4 h-4 text-red-500" />}
+                                <div className="font-mono text-sm truncate">{result.value}</div>
+                              </div>
+                              <div className="text-xs text-gray-400 mt-1 pl-6">
+                                {formatTime(result.timestamp)} • {result.message}
                               </div>
                             </div>
+                            {result.deviceId && (
+                              <Link href={`/tablets/${result.deviceId}`} className="ml-2 text-blue-400 hover:text-blue-300 text-xs">
+                                View
+                              </Link>
+                            )}
                           </div>
-                          <span className={`px-2 py-1 rounded text-xs ${
-                            result.status === 'success' 
-                              ? 'bg-green-100 text-green-800' 
-                              : 'bg-red-100 text-red-800'
-                          }`}>
-                            {result.status}
-                          </span>
-                        </div>
-                        <div className="text-sm text-gray-700">{result.message}</div>
-                        <div className="flex items-center justify-between mt-3">
-                          <span className="text-xs text-gray-500">
-                            {result.type === 'barcode' ? 'Barcode' : 'QR Code'}
-                          </span>
-                          <button
-                            onClick={() => {
-                              // View device details
-                              router.push(`/tablets/${result.deviceId}`);
-                            }}
-                            className="text-xs text-blue-600 hover:text-blue-800"
-                          >
-                            View Device
-                          </button>
-                        </div>
+                        ))}
                       </div>
-                    ))}
+                    )}
                   </div>
                 )}
               </div>
-              
-              <div className="p-6 border-t border-gray-200 flex justify-between items-center">
-                <span className="text-sm text-gray-600">
-                  Showing {scanResults.length} scan records
-                </span>
-                <div className="flex items-center space-x-3">
+            </div>
+
+            {/* Sidebar (1/3 width) */}
+            <div className="space-y-6">
+              {/* Quick Actions */}
+              <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 backdrop-blur-sm rounded-2xl border border-gray-700/50 p-6">
+                <h3 className="text-lg font-bold mb-4">Quick Actions</h3>
+                <div className="space-y-3">
                   <button
                     onClick={handleExportScans}
                     disabled={scanResults.length === 0}
-                    className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+                    className="w-full flex items-center gap-3 p-3 bg-blue-500/10 hover:bg-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition-colors group text-left"
                   >
-                    Export
+                    <div className="p-2 bg-blue-500/20 rounded-lg group-hover:scale-110 transition-transform">
+                      <Download className="w-5 h-5 text-blue-400" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="font-medium text-gray-200">Export Results</div>
+                      <div className="text-sm text-gray-400">Download JSON report</div>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-gray-500" />
                   </button>
+
                   <button
                     onClick={handleClearHistory}
                     disabled={scanResults.length === 0}
-                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
+                    className="w-full flex items-center gap-3 p-3 bg-red-500/10 hover:bg-red-500/20 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition-colors group text-left"
                   >
-                    Clear All
+                    <div className="p-2 bg-red-500/20 rounded-lg group-hover:scale-110 transition-transform">
+                      <XCircle className="w-5 h-5 text-red-400" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="font-medium text-gray-200">Clear History</div>
+                      <div className="text-sm text-gray-400">Remove all scans</div>
+                    </div>
                   </button>
+                </div>
+              </div>
+
+              {/* Scanning Tips */}
+              <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 backdrop-blur-sm rounded-2xl border border-gray-700/50 p-6">
+                <h3 className="text-lg font-bold mb-4">Scanning Tips</h3>
+                <div className="space-y-3 text-sm text-gray-300">
+                  <div className="flex items-start gap-3">
+                    <div className="p-1.5 bg-blue-500/20 rounded-lg mt-0.5">
+                      <ScanLine className="w-4 h-4" />
+                    </div>
+                    <div>Hold the scanner steady while focusing</div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="p-1.5 bg-blue-500/20 rounded-lg mt-0.5">
+                      <ScanFace className="w-4 h-4" />
+                    </div>
+                    <div>Keep the code fully within the frame</div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="p-1.5 bg-blue-500/20 rounded-lg mt-0.5">
+                      <ScanText className="w-4 h-4" />
+                    </div>
+                    <div>Use manual entry if code is damaged</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* System Status */}
+              <div className="bg-gradient-to-br from-blue-900/20 to-indigo-900/20 backdrop-blur-sm rounded-2xl border border-blue-700/30 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-bold">Scanner Status</h3>
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${isScanning ? 'bg-green-500 animate-pulse' : 'bg-gray-500'}`}></div>
+                    <span className="text-sm">{isScanning ? 'Active' : 'Standby'}</span>
+                  </div>
+                </div>
+                <div className="space-y-3 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Mode</span>
+                    <span className="font-medium capitalize">{scanMode}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Camera</span>
+                    <span className="font-medium">{availableCameras.length} available</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Session Scans</span>
+                    <span className="font-medium">{scanResults.length}</span>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        )}
+        </div>
+
+        {/* Bottom Bar */}
+        <div className="mt-8 pt-6 border-t border-gray-700/50">
+          <div className="max-w-6xl mx-auto px-4">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-gray-400">
+              <div className="flex items-center gap-6">
+                <span className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
+                  Scanner ready
+                </span>
+                <span>Current time: {currentTime || "Loading..."}</span>
+              </div>
+              <div className="flex items-center gap-4">
+                <button onClick={() => window.print()} className="hover:text-gray-300">Print</button>
+                <button onClick={() => window.open('/help/scanner', '_blank')} className="hover:text-gray-300">Help</button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-      
-      
     </Layout>
   );
 }

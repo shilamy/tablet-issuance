@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { 
-  Search, 
-  Filter, 
-  Plus, 
-  Download, 
+import {
+  Search,
+  Filter,
+  Plus,
+  Download,
   Tablet,
   Battery,
   Package,
@@ -42,208 +42,9 @@ import {
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import Layout from "@/components/Layout";
-
-interface TabletDevice {
-  id: string;
-  deviceId: string;
-  model: string;
-  status: "available" | "issued" | "damaged" | "missing" | "maintenance";
-  battery: number;
-  storage: string;
-  ram: string;
-  os: string;
-  lastSeen: string;
-  assignedTo: string | null;
-  assignedActivity: string | null;
-  location: string;
-  purchaseDate: string;
-  warranty: string;
-  lastChecked: string;
-  condition: "excellent" | "good" | "fair" | "poor";
-}
-
-const mockTablets: TabletDevice[] = [
-  {
-    id: "T001",
-    deviceId: "KNBS-TAB-001",
-    model: "Samsung Galaxy Tab A8",
-    status: "available",
-    battery: 85,
-    storage: "128GB",
-    ram: "4GB",
-    os: "Android 13",
-    lastSeen: "2024-01-15 14:30",
-    assignedTo: null,
-    assignedActivity: null,
-    location: "Nairobi Warehouse",
-    purchaseDate: "2023-11-20",
-    warranty: "2025-11-20",
-    lastChecked: "2024-01-10",
-    condition: "excellent"
-  },
-  {
-    id: "T002",
-    deviceId: "KNBS-TAB-002",
-    model: "Lenovo Tab M10",
-    status: "issued",
-    battery: 45,
-    storage: "64GB",
-    ram: "3GB",
-    os: "Android 12",
-    lastSeen: "2024-01-14 10:15",
-    assignedTo: "John Doe",
-    assignedActivity: "Household Survey",
-    location: "Nairobi Field",
-    purchaseDate: "2023-10-15",
-    warranty: "2025-10-15",
-    lastChecked: "2024-01-05",
-    condition: "good"
-  },
-  {
-    id: "T003",
-    deviceId: "KNBS-TAB-003",
-    model: "iPad 9th Gen",
-    status: "damaged",
-    battery: 0,
-    storage: "256GB",
-    ram: "3GB",
-    os: "iOS 16",
-    lastSeen: "2024-01-10 09:45",
-    assignedTo: null,
-    assignedActivity: null,
-    location: "Repair Center",
-    purchaseDate: "2023-09-12",
-    warranty: "2025-09-12",
-    lastChecked: "2024-01-03",
-    condition: "poor"
-  },
-  {
-    id: "T004",
-    deviceId: "KNBS-TAB-004",
-    model: "Samsung Galaxy Tab S6 Lite",
-    status: "available",
-    battery: 92,
-    storage: "128GB",
-    ram: "4GB",
-    os: "Android 13",
-    lastSeen: "2024-01-13 16:20",
-    assignedTo: null,
-    assignedActivity: null,
-    location: "Nairobi Warehouse",
-    purchaseDate: "2023-08-25",
-    warranty: "2025-08-25",
-    lastChecked: "2024-01-08",
-    condition: "excellent"
-  },
-  {
-    id: "T005",
-    deviceId: "KNBS-TAB-005",
-    model: "Lenovo Tab P11",
-    status: "missing",
-    battery: 0,
-    storage: "128GB",
-    ram: "6GB",
-    os: "Android 12",
-    lastSeen: "2023-12-20 11:30",
-    assignedTo: "David Kimani",
-    assignedActivity: "Population Census",
-    location: "Unknown",
-    purchaseDate: "2023-07-30",
-    warranty: "2025-07-30",
-    lastChecked: "2023-12-15",
-    condition: "fair"
-  },
-  {
-    id: "T006",
-    deviceId: "KNBS-TAB-006",
-    model: "Samsung Galaxy Tab A7",
-    status: "issued",
-    battery: 67,
-    storage: "64GB",
-    ram: "3GB",
-    os: "Android 12",
-    lastSeen: "2024-01-12 13:45",
-    assignedTo: "Grace Omondi",
-    assignedActivity: "Health Survey",
-    location: "Mombasa Field",
-    purchaseDate: "2023-12-01",
-    warranty: "2025-12-01",
-    lastChecked: "2024-01-02",
-    condition: "good"
-  },
-  {
-    id: "T007",
-    deviceId: "KNBS-TAB-007",
-    model: "iPad Air 5",
-    status: "maintenance",
-    battery: 15,
-    storage: "256GB",
-    ram: "8GB",
-    os: "iOS 17",
-    lastSeen: "2024-01-09 15:10",
-    assignedTo: null,
-    assignedActivity: null,
-    location: "IT Department",
-    purchaseDate: "2024-01-08",
-    warranty: "2026-01-08",
-    lastChecked: "2024-01-09",
-    condition: "good"
-  },
-  {
-    id: "T008",
-    deviceId: "KNBS-TAB-008",
-    model: "Samsung Galaxy Tab S7 FE",
-    status: "available",
-    battery: 78,
-    storage: "256GB",
-    ram: "6GB",
-    os: "Android 13",
-    lastSeen: "2024-01-14 08:30",
-    assignedTo: null,
-    assignedActivity: null,
-    location: "Kisumu Warehouse",
-    purchaseDate: "2023-11-30",
-    warranty: "2025-11-30",
-    lastChecked: "2024-01-07",
-    condition: "excellent"
-  },
-  {
-    id: "T009",
-    deviceId: "KNBS-TAB-009",
-    model: "Lenovo Tab M8",
-    status: "issued",
-    battery: 34,
-    storage: "32GB",
-    ram: "2GB",
-    os: "Android 11",
-    lastSeen: "2024-01-14 14:20",
-    assignedTo: "Lucy Wanjiku",
-    assignedActivity: "Agricultural Census",
-    location: "Thika Field",
-    purchaseDate: "2023-06-15",
-    warranty: "2025-06-15",
-    lastChecked: "2023-12-20",
-    condition: "fair"
-  },
-  {
-    id: "T010",
-    deviceId: "KNBS-TAB-010",
-    model: "Samsung Galaxy Tab S9",
-    status: "available",
-    battery: 95,
-    storage: "512GB",
-    ram: "12GB",
-    os: "Android 14",
-    lastSeen: "2024-01-15 09:15",
-    assignedTo: null,
-    assignedActivity: null,
-    location: "Nairobi HQ",
-    purchaseDate: "2024-01-05",
-    warranty: "2026-01-05",
-    lastChecked: "2024-01-12",
-    condition: "excellent"
-  },
-];
+import { useTabletStore } from "@/store/tabletStore";
+import { TabletDevice } from "@/types/tablets";
+import { mockTablets } from "@/data/mockdata";
 
 const statusOptions = [
   { value: "all", label: "All Tablets", color: "bg-gray-100 text-gray-800", icon: Tablet },
@@ -277,31 +78,31 @@ const viewModes = [
 ];
 
 const exportOptions = [
-  { 
-    label: "Export All", 
+  {
+    label: "Export All",
     description: "Export complete inventory list",
     format: "CSV",
     icon: FileSpreadsheet,
     href: "/tablets/export/all"
   },
-  { 
-    label: "Export Filtered", 
+  {
+    label: "Export Filtered",
     description: "Export current filtered results",
     format: "CSV",
     icon: Filter,
     href: "/tablets/export/filtered",
     disabled: false
   },
-  { 
-    label: "Export Selected", 
+  {
+    label: "Export Selected",
     description: "Export selected tablets only",
     format: "CSV",
     icon: CheckCircle,
     href: "/tablets/export/selected",
     disabled: false
   },
-  { 
-    label: "Custom Export", 
+  {
+    label: "Custom Export",
     description: "Choose fields and format",
     format: "Multiple",
     icon: Settings,
@@ -310,7 +111,10 @@ const exportOptions = [
 ];
 
 export default function TabletsPage() {
-  const [tablets, setTablets] = useState<TabletDevice[]>(mockTablets);
+  // Get tablets from store
+  const { tablets: storeTablets, refreshData } = useTabletStore();
+
+  const [tablets, setTablets] = useState<TabletDevice[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [selectedCondition, setSelectedCondition] = useState("all");
@@ -326,7 +130,7 @@ export default function TabletsPage() {
 
   // Memoized filtered tablets
   const filteredTablets = useMemo(() => {
-    let filtered = mockTablets;
+    let filtered = storeTablets;
 
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
@@ -348,32 +152,31 @@ export default function TabletsPage() {
 
     if (selectedModel !== "all") {
       filtered = filtered.filter(t => t.model === selectedModel);
-/// Apply sorting
-// Apply sorting
-if (sortConfig !== null) {
-  const config = sortConfig; // Create a non-null variable
-  filtered.sort((a, b) => {
-    const aValue = a[config.key];
-    const bValue = b[config.key];
-
-    // Handle null/undefined values
-    if (aValue == null || bValue == null) {
-      // Put null/undefined values at the end
-      if (aValue == null && bValue == null) return 0;
-      if (aValue == null) return 1; // null goes last
-      if (bValue == null) return -1; // null goes last
     }
 
-    if (aValue < bValue) return config.direction === 'asc' ? -1 : 1;
-    if (aValue > bValue) return config.direction === 'asc' ? 1 : -1;
-    return 0;
-  });
-}
+    // Apply sorting
+    if (sortConfig !== null) {
+      const config = sortConfig;
+      filtered.sort((a, b) => {
+        const aValue = a[config.key];
+        const bValue = b[config.key];
+
+        // Handle null/undefined values
+        if (aValue == null || bValue == null) {
+          if (aValue == null && bValue == null) return 0;
+          if (aValue == null) return 1;
+          if (bValue == null) return -1;
+        }
+
+        if (aValue < bValue) return config.direction === 'asc' ? -1 : 1;
+        if (aValue > bValue) return config.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
     }
-  
+
     return filtered;
 
-  }, [searchQuery, selectedStatus, selectedCondition, selectedModel, sortConfig]);
+  }, [storeTablets, searchQuery, selectedStatus, selectedCondition, selectedModel, sortConfig]);
 
   // Paginate results
   const paginatedTablets = useMemo(() => {
@@ -383,9 +186,12 @@ if (sortConfig !== null) {
 
   useEffect(() => {
     setTablets(paginatedTablets);
-    // Reset to page 1 when filters change
-    setCurrentPage(1);
   }, [paginatedTablets]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedStatus, selectedCondition, selectedModel]);
 
   const handleSort = (key: keyof TabletDevice) => {
     let direction: 'asc' | 'desc' = 'asc';
@@ -413,6 +219,7 @@ if (sortConfig !== null) {
 
   const handleRefresh = () => {
     setIsRefreshing(true);
+    refreshData();
     setTimeout(() => setIsRefreshing(false), 1000);
   };
 
@@ -426,7 +233,6 @@ if (sortConfig !== null) {
   };
 
   const handleQuickExport = () => {
-    // Quick export of filtered data
     const dataToExport = filteredTablets;
     console.log("Quick exporting data:", dataToExport.length, "items");
     // In a real app, this would trigger a download or open export modal
@@ -435,22 +241,22 @@ if (sortConfig !== null) {
   const totalPages = Math.ceil(filteredTablets.length / itemsPerPage);
 
   const stats = {
-    total: mockTablets.length,
-    available: mockTablets.filter(t => t.status === 'available').length,
-    issued: mockTablets.filter(t => t.status === 'issued').length,
-    damaged: mockTablets.filter(t => t.status === 'damaged').length,
-    missing: mockTablets.filter(t => t.status === 'missing').length,
-    maintenance: mockTablets.filter(t => t.status === 'maintenance').length,
+    total: storeTablets.length,
+    available: storeTablets.filter(t => t.status === 'available').length,
+    issued: storeTablets.filter(t => t.status === 'issued').length,
+    damaged: storeTablets.filter(t => t.status === 'damaged').length,
+    missing: storeTablets.filter(t => t.status === 'missing').length,
+    maintenance: storeTablets.filter(t => t.status === 'maintenance').length,
     byCondition: conditionOptions.slice(1).map(condition => ({
       ...condition,
-      count: mockTablets.filter(t => t.condition === condition.value).length
+      count: storeTablets.filter((t: TabletDevice) => t.condition === condition.value).length
     })),
-    byModel: Array.from(new Set(mockTablets.map(t => t.model))).map(model => ({
+    byModel: Array.from(new Set(storeTablets.map(t => t.model))).map(model => ({
       model,
-      count: mockTablets.filter(t => t.model === model).length
+      count: storeTablets.filter(t => t.model === model).length
     })),
-    batteryAverage: Math.round(mockTablets.reduce((acc, t) => acc + t.battery, 0) / mockTablets.length),
-    lowBattery: mockTablets.filter(t => t.battery < 30).length,
+    batteryAverage: storeTablets.length > 0 ? Math.round(storeTablets.reduce((acc, t) => acc + t.battery, 0) / storeTablets.length) : 0,
+    lowBattery: storeTablets.filter(t => t.battery < 30).length,
   };
 
   const getStatusIcon = (status: TabletDevice['status']) => {
@@ -520,7 +326,7 @@ if (sortConfig !== null) {
             <p className="text-sm text-gray-600">Manage tablet inventory and assignments</p>
           </div>
           <div className="flex items-center space-x-2">
-            <button 
+            <button
               onClick={handleRefresh}
               disabled={isRefreshing}
               className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg"
@@ -528,10 +334,10 @@ if (sortConfig !== null) {
             >
               <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
             </button>
-            
+
             {/* Export Button with Dropdown */}
             <div className="relative">
-              <button 
+              <button
                 onClick={handleExportClick}
                 className="flex items-center px-3 py-2 bg-gray-800 hover:bg-gray-900 text-white rounded-lg text-sm"
               >
@@ -539,10 +345,10 @@ if (sortConfig !== null) {
                 Export
                 <ChevronDown className={`w-3 h-3 ml-1 transition-transform ${showExportMenu ? 'rotate-180' : ''}`} />
               </button>
-              
+
               {showExportMenu && (
                 <>
-                  <div 
+                  <div
                     className="fixed inset-0 z-10"
                     onClick={() => setShowExportMenu(false)}
                   />
@@ -731,11 +537,10 @@ if (sortConfig !== null) {
                       <button
                         key={option.value}
                         onClick={() => setSelectedStatus(option.value)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                          selectedStatus === option.value
-                            ? option.color
-                            : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                        }`}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${selectedStatus === option.value
+                          ? option.color
+                          : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                          }`}
                       >
                         {option.label}
                       </button>
@@ -836,7 +641,7 @@ if (sortConfig !== null) {
                         className="rounded border-gray-300 text-knbs-600 focus:ring-knbs-500 h-4 w-4"
                       />
                     </th>
-                    <th 
+                    <th
                       className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                       onClick={() => handleSort('deviceId')}
                     >
@@ -869,7 +674,7 @@ if (sortConfig !== null) {
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {tablets.map((tablet) => (
-                    <tr 
+                    <tr
                       key={tablet.id}
                       className={cn(
                         "hover:bg-gray-50",
@@ -1031,16 +836,15 @@ if (sortConfig !== null) {
                       } else {
                         pageNum = currentPage - 1 + i;
                       }
-                      
+
                       return (
                         <button
                           key={pageNum}
                           onClick={() => setCurrentPage(pageNum)}
-                          className={`px-3 py-1.5 rounded text-sm ${
-                            currentPage === pageNum
-                              ? 'bg-knbs-500 text-white'
-                              : 'border border-gray-300 hover:bg-gray-50'
-                          }`}
+                          className={`px-3 py-1.5 rounded text-sm ${currentPage === pageNum
+                            ? 'bg-knbs-500 text-white'
+                            : 'border border-gray-300 hover:bg-gray-50'
+                            }`}
                         >
                           {pageNum}
                         </button>
@@ -1086,7 +890,7 @@ if (sortConfig !== null) {
                     {getStatusIcon(tablet.status)}
                   </div>
                 </div>
-                
+
                 <div className="space-y-3 mb-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center">
@@ -1099,28 +903,28 @@ if (sortConfig !== null) {
                       {tablet.condition}
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center text-sm text-gray-600">
                     <HardDrive className="w-3 h-3 mr-2" />
                     {tablet.storage} • {tablet.ram}
                   </div>
-                  
+
                   <div className="flex items-center text-sm text-gray-600">
                     <Cpu className="w-3 h-3 mr-2" />
                     {tablet.os}
                   </div>
-                  
+
                   <div className="flex items-center text-sm text-gray-600">
                     <User className="w-3 h-3 mr-2" />
                     {tablet.assignedTo || "Unassigned"}
                   </div>
-                  
+
                   <div className="flex items-center text-sm text-gray-600">
                     <MapPin className="w-3 h-3 mr-2" />
                     {tablet.location}
                   </div>
                 </div>
-                
+
                 <div className="flex items-center justify-between pt-3 border-t border-gray-100">
                   <div className="text-xs text-gray-500">
                     Last seen: {new Date(tablet.lastSeen).toLocaleDateString()}
@@ -1158,13 +962,12 @@ if (sortConfig !== null) {
               {statusOptions.slice(1).map((status) => (
                 <div key={status.value} className="flex items-center justify-between">
                   <div className="flex items-center">
-                    <div className={`w-3 h-3 rounded-full mr-2 ${
-                      status.value === 'available' ? 'bg-green-500' :
+                    <div className={`w-3 h-3 rounded-full mr-2 ${status.value === 'available' ? 'bg-green-500' :
                       status.value === 'issued' ? 'bg-blue-500' :
-                      status.value === 'damaged' ? 'bg-red-500' :
-                      status.value === 'missing' ? 'bg-orange-500' :
-                      'bg-yellow-500'
-                    }`}></div>
+                        status.value === 'damaged' ? 'bg-red-500' :
+                          status.value === 'missing' ? 'bg-orange-500' :
+                            'bg-yellow-500'
+                      }`}></div>
                     <span className="text-sm text-gray-600">{status.label}</span>
                   </div>
                   <span className="text-sm font-medium text-gray-900">
