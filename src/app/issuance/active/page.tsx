@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { 
   Package, User, Tablet, Calendar, MapPin,
   ChevronLeft, Search, Filter, Download,
@@ -9,30 +9,38 @@ import {
 import Link from "next/link";
 import Layout from "@/components/Layout";
 
+type ActiveIssuance = {
+  id: string;
+  participantId: string;
+  participantName: string;
+  tabletId: string;
+  tabletModel: string;
+  checkedOutAt: string;
+  expectedReturn: string;
+  checkedOutBy: string;
+  location: string;
+  status: "active" | "overdue";
+};
+
+const mockIssuances: ActiveIssuance[] = [
+  {
+    id: "ACT-001",
+    participantId: "P-1001",
+    participantName: "John Doe",
+    tabletId: "KNBS-TAB-001",
+    tabletModel: "Samsung Galaxy Tab A8",
+    checkedOutAt: "2024-01-10T10:00:00Z",
+    expectedReturn: "2024-01-15T18:00:00Z",
+    checkedOutBy: "Admin User",
+    location: "Nairobi Office",
+    status: "active",
+  },
+];
+
 export default function ActiveIssuancesPage() {
-  const [issuances, setIssuances] = useState<any[]>([]);
+  const issuances = mockIssuances;
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
-
-  useEffect(() => {
-    // Mock data
-    const mockData = [
-      {
-        id: 'ACT-001',
-        participantId: 'P-1001',
-        participantName: 'John Doe',
-        tabletId: 'KNBS-TAB-001',
-        tabletModel: 'Samsung Galaxy Tab A8',
-        checkedOutAt: '2024-01-10T10:00:00Z',
-        expectedReturn: '2024-01-15T18:00:00Z',
-        checkedOutBy: 'Admin User',
-        location: 'Nairobi Office',
-        status: 'active'
-      },
-      // Add more mock data...
-    ];
-    setIssuances(mockData);
-  }, []);
 
   const filteredIssuances = issuances.filter(issuance => {
     if (filter === 'overdue') {

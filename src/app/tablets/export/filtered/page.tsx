@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import { 
   Download, Filter, ChevronLeft, RefreshCw, 
   Save, Eye, Trash2, Clock, BarChart, 
@@ -30,37 +30,25 @@ export default function ExportFiltered() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
-  const [activeFilters, setActiveFilters] = useState({
-    search: "",
-    status: [] as string[],
-    condition: [] as string[],
-    batteryRange: [0, 100] as [number, number],
-    location: [] as string[],
-    assigned: "all" as "all" | "assigned" | "unassigned",
-    dateRange: { start: "", end: "" },
-  });
-  
-  const [filteredData, setFilteredData] = useState<TabletDevice[]>(mockTablets);
-  const [savedFilterName, setSavedFilterName] = useState("");
-  const [showSaveDialog, setShowSaveDialog] = useState(false);
-  const [exportFormat, setExportFormat] = useState('csv');
-  const [isExporting, setIsExporting] = useState(false);
-
-  // Apply filters from URL params
-  useEffect(() => {
+  const [activeFilters, setActiveFilters] = useState(() => {
     const status = searchParams.get('status');
     const condition = searchParams.get('condition');
     const search = searchParams.get('search');
-    
-    if (status) setActiveFilters(prev => ({ ...prev, status: [status] }));
-    if (condition) setActiveFilters(prev => ({ ...prev, condition: [condition] }));
-    if (search) setActiveFilters(prev => ({ ...prev, search }));
-  }, [searchParams]);
 
-  // Apply filters
-  useEffect(() => {
+    return {
+      search: search || "",
+      status: status ? [status] : ([] as string[]),
+      condition: condition ? [condition] : ([] as string[]),
+      batteryRange: [0, 100] as [number, number],
+      location: [] as string[],
+      assigned: "all" as "all" | "assigned" | "unassigned",
+      dateRange: { start: "", end: "" },
+    };
+  });
+
+  const filteredData = useMemo(() => {
     let result = [...mockTablets];
-    
+
     // Search filter
     if (activeFilters.search) {
       const query = activeFilters.search.toLowerCase();
@@ -71,32 +59,36 @@ export default function ExportFiltered() {
         t.location.toLowerCase().includes(query)
       );
     }
-    
+
     // Status filter
     if (activeFilters.status.length > 0) {
       result = result.filter(t => activeFilters.status.includes(t.status));
     }
-    
+
     // Condition filter
     if (activeFilters.condition.length > 0) {
       result = result.filter(t => activeFilters.condition.includes(t.condition));
     }
-    
+
     // Battery range filter
-    result = result.filter(t => 
-      t.battery >= activeFilters.batteryRange[0] && 
+    result = result.filter(t =>
+      t.battery >= activeFilters.batteryRange[0] &&
       t.battery <= activeFilters.batteryRange[1]
     );
-    
+
     // Assignment filter
     if (activeFilters.assigned === "assigned") {
       result = result.filter(t => t.assignedTo !== null);
     } else if (activeFilters.assigned === "unassigned") {
       result = result.filter(t => t.assignedTo === null);
     }
-    
-    setFilteredData(result);
+
+    return result;
   }, [activeFilters]);
+  const [savedFilterName, setSavedFilterName] = useState("");
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [exportFormat, setExportFormat] = useState('csv');
+  const [isExporting, setIsExporting] = useState(false);
 
   const handleSaveFilter = () => {
     if (savedFilterName.trim()) {

@@ -8,17 +8,18 @@ module.exports = {
     extend: {
       colors: {
         knbs: {
-          '50': '#fef6ee',
-          '100': '#fdebd7',
-          '200': '#fbd4af',
-          '300': '#f9b77d',
-          '400': '#f69144',
-          '500': '#f2731c', 
-          '600': '#e35c12',
-          '700': '#bc4511',
-          '800': '#963816',
-          '900': '#793115',// Primary brand color
+          50: '#fceae4',
+          100: '#f5d7cc',
+          200: '#edbfb2',
+          300: '#e2a799',
+          400: '#d6947f',
+          500: '#b06443',
+          600: '#a3593b',
+          700: '#894d34',
+          800: '#72412d',
+          900: '#5c3626', // Primary brand color #B06443
         },
+        primary: 'colors.knbs',
         gray: {
           50: '#f9fafb',
           100: '#f3f4f6',
@@ -49,3 +50,4 @@ module.exports = {
   darkMode: "class",
   plugins: [],
 };
+

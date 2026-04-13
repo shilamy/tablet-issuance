@@ -1,5 +1,6 @@
 "use client";
 import Layout from "@/components/Layout";
+import { cn } from "@/lib/utils";
 import {
     User,
     Bell,
@@ -28,6 +29,8 @@ export default function SettingsPage() {
 
     // useEffect only runs on the client, so now we can safely show the UI
     useEffect(() => {
+        // next-themes recommends gating theme-dependent UI until mounted.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setMounted(true);
     }, []);
 
@@ -219,8 +222,4 @@ export default function SettingsPage() {
             </div>
         </Layout>
     );
-}
-
-function cn(...classes: any[]) {
-    return classes.filter(Boolean).join(" ");
 }

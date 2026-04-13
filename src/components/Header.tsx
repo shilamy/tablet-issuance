@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { useAuth } from "@/lib/auth";
+import { useAuth } from "@/components/providers/auth-provider";
 import { useRouter } from "next/navigation";
 
 export default function Header() {
@@ -24,7 +24,7 @@ export default function Header() {
   const [searchQuery, setSearchQuery] = useState("");
   const profileRef = useRef<HTMLDivElement>(null);
   const notificationsRef = useRef<HTMLDivElement>(null);
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   const router = useRouter();
 
   // Close dropdowns when clicking outside
@@ -69,13 +69,7 @@ export default function Header() {
             </button>
 
             <Link href="/dashboard" className="flex items-center space-x-3 group transition-all duration-300">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-knbs-500 to-knbs-600 text-white shadow-lg shadow-knbs-500/20 group-hover:scale-105 transition-transform">
-                <div className="h-6 w-6">
-                  <svg viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z" />
-                  </svg>
-                </div>
-              </div>
+              <img src="/logo-KNBS.png" alt="KNBS Logo" className="h-10 w-10 object-contain rounded-xl shadow-lg shadow-knbs-500/20 group-hover:scale-105 transition-transform bg-white p-1" />
               <div className="hidden sm:block">
                 <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600 dark:from-gray-100 dark:to-gray-400">TabletTrack</h1>
                 <p className="text-[10px] uppercase tracking-widest font-semibold text-knbs-500 -mt-0.5">KNBS System</p>
@@ -175,8 +169,12 @@ export default function Header() {
                   <User className="h-4.5 w-4.5" />
                 </div>
                 <div className="hidden md:block text-left mr-1">
-                  <p className="text-sm font-bold text-gray-900 dark:text-gray-100 leading-none">Admin User</p>
-                  <p className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 mt-1.5">Administrator</p>
+                  <p className="text-sm font-bold text-gray-900 dark:text-gray-100 leading-none">
+                    {user?.name || 'Guest'}
+                  </p>
+                  <p className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 mt-1.5 capitalize">
+                    {user?.role?.replace('_', ' ') || 'Not signed in'}
+                  </p>
                 </div>
                 <ChevronDown className={cn(
                   "hidden md:block h-3.5 w-3.5 text-gray-500 dark:text-gray-400 transition-transform duration-300",
@@ -189,17 +187,19 @@ export default function Header() {
                   <div className="px-5 py-5 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-950/50">
                     <div className="flex items-center space-x-3 mb-3">
                       <div className="h-12 w-12 rounded-xl bg-knbs-500 flex items-center justify-center text-white font-bold text-lg shadow-inner">
-                        AU
+                        {user?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'GU'}
                       </div>
                       <div>
-                        <p className="text-sm font-bold text-gray-900 dark:text-gray-100">Admin User</p>
-                        <p className="text-[11px] font-medium text-gray-500 dark:text-gray-400">admin@knbs.gov.ke</p>
+                        <p className="text-sm font-bold text-gray-900 dark:text-gray-100">{user?.name || 'Guest'}</p>
+                        <p className="text-[11px] font-medium text-gray-500 dark:text-gray-400">{user?.email || 'Not signed in'}</p>
                       </div>
                     </div>
-                    <div className="flex items-center text-[10px] font-bold text-knbs-700 dark:text-knbs-400 uppercase tracking-widest bg-knbs-100/50 dark:bg-knbs-950/50 w-fit px-2 py-0.5 rounded-full">
-                      <span className="w-1.5 h-1.5 bg-knbs-500 rounded-full mr-2 animate-pulse"></span>
-                      Online now
-                    </div>
+                    {user && (
+                      <div className="flex items-center text-[10px] font-bold text-knbs-700 dark:text-knbs-400 uppercase tracking-widest bg-knbs-100/50 dark:bg-knbs-950/50 w-fit px-2 py-0.5 rounded-full">
+                        <span className="w-1.5 h-1.5 bg-knbs-500 rounded-full mr-2 animate-pulse"></span>
+                        Online now
+                      </div>
+                    )}
                   </div>
 
                   <div className="py-2">

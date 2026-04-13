@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import { 
   Tablet, User, Calendar, MapPin, QrCode,
   ArrowLeft, Search, CheckCircle, AlertCircle,
@@ -25,26 +25,27 @@ export default function CheckinPage() {
     location: "Nairobi Office"
   });
 
-  const [activeIssuance, setActiveIssuance] = useState<any>(null);
+  type ActiveIssuanceInfo = {
+    participantName: string;
+    tabletModel: string;
+    checkedOutAt: string;
+    expectedReturn: string;
+    checkedOutBy: string;
+    location: string;
+  };
 
-  // Mock function to find active issuance
-  const findActiveIssuance = () => {
-    const mockData = {
+  const activeIssuance = useMemo<ActiveIssuanceInfo | null>(() => {
+    if (!formData.tabletId && !formData.participantId) return null;
+
+    return {
       participantName: "John Doe",
       tabletModel: "Samsung Galaxy Tab A8",
       checkedOutAt: "2024-01-10T10:00:00Z",
       expectedReturn: "2024-01-15T18:00:00Z",
       checkedOutBy: "Admin User",
-      location: "Nairobi Office"
+      location: "Nairobi Office",
     };
-    setActiveIssuance(mockData);
-  };
-
-  useEffect(() => {
-    if (formData.tabletId || formData.participantId) {
-      findActiveIssuance();
-    }
-  }, [formData.tabletId, formData.participantId]);
+  }, [formData.participantId, formData.tabletId]);
 
   const handleSubmit = () => {
     setLoading(true);
@@ -73,13 +74,7 @@ export default function CheckinPage() {
               <h1 className="text-2xl font-bold text-gray-900">Check-in Tablet</h1>
               <p className="text-gray-600">Return tablet from participant</p>
             </div>
-            <Link
-              href="/issuance/scan?type=checkin"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"
-            >
-              <QrCode className="w-4 h-4" />
-              Scan QR
-            </Link>
+
           </div>
         </div>
 
@@ -120,12 +115,6 @@ export default function CheckinPage() {
                     placeholder="KNBS-TAB-001"
                     className="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   />
-                  <button
-                    onClick={() => router.push('/issuance/scan?type=checkin')}
-                    className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-                  >
-                    <Search className="w-5 h-5" />
-                  </button>
                 </div>
               </div>
 
@@ -141,12 +130,6 @@ export default function CheckinPage() {
                     placeholder="P-1001"
                     className="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   />
-                  <button
-                    onClick={() => router.push('/issuance/scan?type=checkin')}
-                    className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-                  >
-                    <Search className="w-5 h-5" />
-                  </button>
                 </div>
               </div>
             </div>

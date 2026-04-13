@@ -3,8 +3,7 @@ import { persist } from 'zustand/middleware';
 import { TabletDevice } from '@/types/tablets';
 import { Participant } from '@/types/participants';
 import { IssuanceRecord, CheckOutData, CheckInData } from '@/types/issuance';
-import { mockTablets } from '@/data/mockdata';
-import { mockParticipants } from '@/data/mockdata';
+
 
 interface TabletStore {
     // State
@@ -38,16 +37,7 @@ interface TabletStore {
     refreshData: () => void;
 }
 
-const initialState = {
-    tablets: mockTablets.map(t => ({
-        ...t,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-    })),
-    participants: mockParticipants,
-    issuances: [] as IssuanceRecord[],
-    lastUpdated: new Date().toISOString(),
-};
+const initialState = {\n    tablets: [],\n    participants: [],\n    issuances: [] as IssuanceRecord[],\n    lastUpdated: '',\n  };
 
 export const useTabletStore = create<TabletStore>()(
     persist(
@@ -270,11 +260,7 @@ export const useTabletStore = create<TabletStore>()(
             // Utility Actions
             resetStore: () => set(initialState),
 
-            refreshData: () =>
-                set((state) => ({
-                    ...state,
-                    lastUpdated: new Date().toISOString(),
-                })),
+    refreshData: async () => {\n      try {\n        const [tabletsRes, participantsRes, issuancesRes] = await Promise.all([\n          fetch('/api/tablets'),\n          fetch('/api/participants'),\n          fetch('/api/issuances'),\n        ]);\n\n        if (tabletsRes.ok && participantsRes.ok && issuancesRes.ok) {\n          const tablets = await tabletsRes.json();\n          const participants = await participantsRes.json();\n          const issuances = await issuancesRes.json();\n          \n          set({\n            tablets,\n            participants,\n            issuances,\n            lastUpdated: new Date().toISOString(),\n          });\n        }\n      } catch (error) {\n        console.error('Failed to refresh data:', error);\n      }\n    },
         }),
         {
             name: 'tablet-store',

@@ -12,6 +12,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Layout from "@/components/Layout";
+import { toast } from "@/components/ui/toast";
 
 interface NewTabletForm {
   deviceId: string;
@@ -90,7 +91,6 @@ export default function NewTabletPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [activeTab, setActiveTab] = useState('basic');
-  const [showScanner, setShowScanner] = useState(false);
 
   const generateDeviceId = () => {
     const prefix = "KNBS-TAB-";
@@ -124,25 +124,9 @@ export default function NewTabletPage() {
     // Simulate API call
     setTimeout(() => {
       setIsSubmitting(false);
-      alert(`Tablet ${form.deviceId} added successfully!`);
+      toast(`Tablet ${form.deviceId} added successfully!`, "success");
       router.push('/tablets');
     }, 2000);
-  };
-
-  const handleScan = (type: 'barcode' | 'qr') => {
-    setShowScanner(true);
-    // In real app, this would open scanner
-    setTimeout(() => {
-      setShowScanner(false);
-      // Simulate scan results
-      if (type === 'barcode') {
-        setForm(prev => ({
-          ...prev,
-          serialNumber: `SN${Math.floor(Math.random() * 1000000).toString().padStart(6, '0')}`,
-          imei: `${Math.floor(Math.random() * 1000000000000000).toString().padStart(15, '0')}`
-        }));
-      }
-    }, 1500);
   };
 
   const tabs = [
@@ -276,17 +260,9 @@ export default function NewTabletPage() {
                               type="text"
                               value={form.serialNumber}
                               onChange={(e) => setForm(prev => ({ ...prev, serialNumber: e.target.value }))}
-                              className={`flex-1 px-3 py-2 border ${errors.serialNumber ? 'border-red-300' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
+                              className={`w-full px-3 py-2 border ${errors.serialNumber ? 'border-red-300' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                               placeholder="Enter serial number"
                             />
-                            <button
-                              type="button"
-                              onClick={() => handleScan('barcode')}
-                              className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-                              title="Scan Barcode"
-                            >
-                              <Barcode className="w-4 h-4" />
-                            </button>
                           </div>
                           {errors.serialNumber && (
                             <p className="mt-1 text-sm text-red-600">{errors.serialNumber}</p>
@@ -302,18 +278,10 @@ export default function NewTabletPage() {
                               type="text"
                               value={form.imei}
                               onChange={(e) => setForm(prev => ({ ...prev, imei: e.target.value }))}
-                              className={`flex-1 px-3 py-2 border ${errors.imei ? 'border-red-300' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
+                              className={`w-full px-3 py-2 border ${errors.imei ? 'border-red-300' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                               placeholder="15-digit IMEI"
                               maxLength={15}
                             />
-                            <button
-                              type="button"
-                              onClick={() => handleScan('qr')}
-                              className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-                              title="Scan QR Code"
-                            >
-                              <QrCode className="w-4 h-4" />
-                            </button>
                           </div>
                           {errors.imei && (
                             <p className="mt-1 text-sm text-red-600">{errors.imei}</p>
@@ -791,7 +759,7 @@ export default function NewTabletPage() {
                   onClick={() => {
                     // Save as draft
                     localStorage.setItem('tabletDraft', JSON.stringify(form));
-                    alert('Saved as draft!');
+                    toast('Saved as draft!', 'success');
                   }}
                   className="w-full py-3 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 flex items-center justify-center"
                 >
@@ -833,32 +801,6 @@ export default function NewTabletPage() {
           </div>
         </div>
 
-        {/* Scanner Modal */}
-        {showScanner && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl w-full max-w-md">
-              <div className="p-6 border-b border-gray-200 flex items-center justify-between">
-                <h3 className="text-lg font-bold text-gray-900">Scanning...</h3>
-                <button
-                  onClick={() => setShowScanner(false)}
-                  className="p-2 hover:bg-gray-100 rounded-lg"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-              
-              <div className="p-12 text-center">
-                <div className="relative">
-                  <div className="w-64 h-1 bg-blue-500 animate-pulse rounded-full"></div>
-                  <div className="w-64 h-64 border-2 border-blue-400 rounded-lg mt-4 relative overflow-hidden mx-auto">
-                    <div className="absolute top-0 left-0 right-0 h-1 bg-blue-500 animate-scan"></div>
-                  </div>
-                </div>
-                <p className="text-gray-600 mt-6">Align barcode within the frame</p>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </Layout>
   );

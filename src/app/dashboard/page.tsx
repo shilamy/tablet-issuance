@@ -17,6 +17,7 @@ import {
   Plus
 } from "lucide-react";
 import { useState } from "react";
+import { toast } from "@/components/ui/toast";
 
 export default function DashboardPage() {
   const [showRequestForm, setShowRequestForm] = useState(false);
@@ -97,7 +98,7 @@ export default function DashboardPage() {
 
   const handleSubmitRequest = (e: React.FormEvent) => {
     e.preventDefault();
-    alert("Tablet request submitted successfully! Pending admin approval.");
+    toast("Tablet request submitted successfully! Pending admin approval.", "success");
     setShowRequestForm(false);
     setRequestData({ activity: "", quantity: "", counties: [], type: "", notes: "" });
   };

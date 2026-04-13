@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { 
   Download, CheckSquare, ChevronLeft, RefreshCw, 
   Eye, Trash2, Filter, Plus, X, Search,
@@ -33,14 +33,6 @@ export default function ExportSelected() {
   });
   const [bulkActions, setBulkActions] = useState<string[]>([]);
   const [showSelectionPanel, setShowSelectionPanel] = useState(false);
-
-  // Load selected tablets from localStorage/session
-  useEffect(() => {
-    const saved = localStorage.getItem('selectedTablets');
-    if (saved) {
-      setSelectedTablets(JSON.parse(saved));
-    }
-  }, []);
 
   // Save selected tablets
   useEffect(() => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { 
   Download, Settings, ChevronLeft, RefreshCw, 
   Save, Eye, Clock, Calendar, Mail, Cloud,
@@ -13,6 +13,24 @@ import { useRouter } from "next/navigation";
 import Layout from "@/components/Layout";
 import { TabletDevice, ExportConfig } from "@/types/tablet";
 
+type ExportSchedule = {
+  id: number;
+  name: string;
+  frequency: string;
+  nextRun: string;
+  fields: number;
+  status: "active";
+};
+
+const FIELD_CATEGORIES: Record<string, Array<keyof TabletDevice>> = {
+  "Basic Information": ["deviceId", "model", "serialNumber", "imei"],
+  "Status & Condition": ["status", "condition", "lastSeen", "lastChecked"],
+  Specifications: ["storage", "ram", "os", "battery"],
+  Assignment: ["assignedTo", "assignedActivity", "department"],
+  Location: ["location", "purchaseDate", "warranty"],
+  Metadata: ["createdAt", "updatedAt", "notes"],
+};
+
 export default function ExportCustom() {
   const router = useRouter();
   const [config, setConfig] = useState<ExportConfig>({
@@ -24,51 +42,38 @@ export default function ExportCustom() {
     emailNotification: false,
   });
   
-  const [schedules, setSchedules] = useState<any[]>([]);
+  const [schedules, setSchedules] = useState<ExportSchedule[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('fields');
-  const [fieldCategories, setFieldCategories] = useState<Record<string, string[]>>({});
   const [scheduledExport, setScheduledExport] = useState({
     enabled: false,
     frequency: 'weekly',
     day: 'monday',
     time: '09:00',
-    recipients: [],
+    recipients: [] as string[],
   });
 
-  // Initialize field categories
-  useEffect(() => {
-    const categories = {
-      'Basic Information': ['deviceId', 'model', 'serialNumber', 'imei'],
-      'Status & Condition': ['status', 'condition', 'lastSeen', 'lastChecked'],
-      'Specifications': ['storage', 'ram', 'os', 'battery'],
-      'Assignment': ['assignedTo', 'assignedActivity', 'department'],
-      'Location': ['location', 'purchaseDate', 'warranty'],
-      'Metadata': ['createdAt', 'updatedAt', 'notes'],
-    };
-    setFieldCategories(categories);
-  }, []);
-
+  const fieldCategories = FIELD_CATEGORIES;
   const allFields = Object.values(fieldCategories).flat();
 
-  const handleFieldToggle = (field: string) => {
+  const handleFieldToggle = (field: keyof TabletDevice) => {
     setConfig(prev => ({
       ...prev,
-      includeFields: prev.includeFields.includes(field as any)
+      includeFields: prev.includeFields.includes(field)
         ? prev.includeFields.filter(f => f !== field)
-        : [...prev.includeFields, field as keyof TabletDevice]
+        : [...prev.includeFields, field]
     }));
   };
 
   const handleSelectAll = (category: string) => {
     const fields = fieldCategories[category] || [];
-    const allSelected = fields.every(f => config.includeFields.includes(f as any));
+    const allSelected = fields.every(f => config.includeFields.includes(f));
     
     setConfig(prev => ({
       ...prev,
       includeFields: allSelected
-        ? prev.includeFields.filter(f => !fields.includes(f as string))
-        : [...new Set([...prev.includeFields, ...fields as any])]
+        ? prev.includeFields.filter(f => !fields.includes(f))
+        : Array.from(new Set([...prev.includeFields, ...fields]))
     }));
   };
 
@@ -90,7 +95,7 @@ export default function ExportCustom() {
         fields: config.includeFields.length,
         status: 'active'
       };
-      setSchedules([newSchedule, ...schedules]);
+      setSchedules(prev => [newSchedule, ...prev]);
       alert('Export scheduled successfully!');
     }
   };
@@ -100,7 +105,7 @@ export default function ExportCustom() {
     { id: 'excel', label: 'Excel', icon: BarChart, color: 'bg-blue-100 text-blue-800' },
     { id: 'pdf', label: 'PDF', icon: FileText, color: 'bg-red-100 text-red-800' },
     { id: 'json', label: 'JSON', icon: Code, color: 'bg-purple-100 text-purple-800' },
-  ];
+  ] as const satisfies ReadonlyArray<{ id: ExportConfig["format"]; label: string; icon: unknown; color: string }>;
 
   const frequencyOptions = [
     { value: 'daily', label: 'Daily' },

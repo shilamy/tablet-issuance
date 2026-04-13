@@ -1,0 +1,176 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  name          String?
+  role          Role     @default(VIEWER)
+  department    String?
+  phone         String?
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  issuancesCheckout Issuance[] @relation("CheckoutBy")
+  issuancesCheckin  Issuance[] @relation("CheckinBy")
+  logs              Log[]
+
+  @@map("users")
+}
+
+model Participant {
+  id               String   @id @default(cuid())
+  name             String
+  email            String   @unique
+  phone            String?
+  location         String
+  status           ParticipantStatus @default(PENDING)
+  activity         String
+  tabletsIssued    Int      @default(0)
+  tabletsReturned  Int      @default(0)
+  lastActivity     DateTime?
+  contractStatus   ContractStatus @default(NONE)
+  joinDate         DateTime
+  contractEndDate  DateTime?
+  supervisor       String?
+  notes            String?
+
+  // Denormalized tablet info (optional, for quick views)
+  tabletSerial     String?
+  tabletModel      String?
+  tabletStatus     TabletStatus?
+  issueDate        DateTime?
+  expectedReturnDate DateTime?
+  actualReturnDate DateTime?
+  batteryHealth    Int?
+  storageUsed      Int?
+  wifiConnected    Boolean?
+  lastSync         DateTime?
+
+  // Relations
+  issuances Issuance[]
+
+  @@map("participants")
+}
+
+model Tablet {
+  id            String        @id @default(cuid())
+  deviceId      String        @unique
+  model         String
+  status        TabletStatus  @default(AVAILABLE)
+  battery       Int?
+  storage       String?
+  ram           String?
+  os            String?
+  lastSeen      DateTime?
+  location      String?
+  purchaseDate  DateTime?
+  warranty      String?
+  lastChecked   DateTime?
+  condition     Condition     @default(EXCELLENT)
+  serialNumber  String?       @unique
+  imei          String?       @unique
+  barcode       String?
+  department    String?
+  notes         String?
+
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  // Relations
+  issuances     Issuance[]
+
+  @@map("tablets")
+}
+
+model Issuance {
+  id                String           @id @default(cuid())
+  participantId     String
+  tabletId          String
+  checkoutDate      DateTime         @default(now())
+  expectedReturnDate DateTime
+  actualReturnDate  DateTime?
+  checkoutLocation  String
+  checkinLocation   String?
+  status            IssuanceStatus   @default(ACTIVE)
+  notes             String?
+
+  // Foreign keys
+  participant       Participant      @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  tablet            Tablet           @relation(fields: [tabletId], references: [id], onDelete: Cascade)
+  checkoutBy        User?            @relation("CheckoutBy", fields: [checkoutById], references: [id])
+  checkinBy         User?            @relation("CheckinBy", fields: [checkinById], references: [id])
+
+  checkoutById      String?
+  checkinById       String?
+
+  @@unique([participantId, tabletId], name: "unique_participant_tablet")
+  @@map("issuances")
+}
+
+model Log {
+  id        String   @id @default(cuid())
+  userId    String
+  action    String   // e.g. "checkout", "checkin", "edit_participant"
+  details   Json?
+  ip        String?
+  userAgent String?
+
+  timestamp DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("logs")
+}
+
+// Enums
+enum Role {
+  ADMIN
+  MANAGER
+  FIELD_OFFICER
+  VIEWER
+}
+
+enum ParticipantStatus {
+  ACTIVE
+  INACTIVE
+  PENDING
+}
+
+enum ContractStatus {
+  ACTIVE
+  EXPIRED
+  NONE
+}
+
+enum TabletStatus {
+  AVAILABLE
+  ISSUED
+  DAMAGED
+  MISSING
+  MAINTENANCE
+}
+
+enum Condition {
+  EXCELLENT
+  GOOD
+  FAIR
+  POOR
+  DAMAGED
+}
+
+enum IssuanceStatus {
+  ACTIVE
+  RETURNED
+  OVERDUE
+}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import {
   Tablet, User, Calendar, MapPin, QrCode,
   ArrowLeft, Search, CheckCircle, AlertCircle,
@@ -37,7 +37,7 @@ export default function CheckoutPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Get available tablets from store
-  const availableTablets = useMemo(() => getAvailableTablets(), [tablets]);
+  const availableTablets = getAvailableTablets();
 
   const handleSubmit = () => {
     setIsSubmitting(true);
@@ -80,13 +80,7 @@ export default function CheckoutPage() {
               <h1 className="text-2xl font-bold text-gray-900">Check-out Tablet</h1>
               <p className="text-gray-600">Issue tablet to participant</p>
             </div>
-            <Link
-              href="/issuance/scan?type=checkout"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-            >
-              <QrCode className="w-4 h-4" />
-              Scan QR
-            </Link>
+
           </div>
         </div>
 
@@ -127,15 +121,9 @@ export default function CheckoutPage() {
                   type="text"
                   value={formData.participantId}
                   onChange={(e) => setFormData({ ...formData, participantId: e.target.value })}
-                  placeholder="Enter participant ID or scan QR"
+                  placeholder="Enter participant ID"
                   className="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
-                <Link
-                  href="/issuance/scan?type=checkout"
-                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-                >
-                  <Search className="w-5 h-5" />
-                </Link>
               </div>
             </div>
 

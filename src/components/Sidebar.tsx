@@ -46,11 +46,19 @@ export default function Sidebar() {
       <div className="sticky top-16 h-[calc(100vh-4rem)] flex flex-col">
 
         {/* Navigation Section */}
-        <div className="flex-1 p-6 space-y-8 overflow-y-auto">
-          <div>
-            <p className="px-4 text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] mb-4">
-              Main Dashboard
-            </p>
+        <div className="p-4 border-b border-gray-100 dark:border-gray-800 mb-6">
+              <img 
+                src="/logo-KNBS.png" 
+                alt="KNBS Logo" 
+                className="h-12 w-12 object-contain mx-auto rounded-xl shadow-lg shadow-knbs-400/30 mb-3"
+              />
+              <p className="text-center text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Tablet Issuance System</p>
+            </div>
+            <div className="flex-1 space-y-8 overflow-y-auto">
+              <div>
+                <p className="px-4 text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] mb-4">
+                  Main Dashboard
+                </p>
             <nav className="space-y-1.5">
               {sidebarItems.map((item) => {
                 const isActive = pathname === item.href || pathname?.startsWith(item.href + "/");

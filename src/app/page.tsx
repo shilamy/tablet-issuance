@@ -17,9 +17,7 @@ export default function HomePage() {
       <header className="border-b border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-knbs-500 to-knbs-600 rounded-xl flex items-center justify-center shadow-lg shadow-knbs-500/20">
-              <Tablet className="w-6 h-6 text-white" />
-            </div>
+            <img src="/logo-KNBS.png" alt="KNBS Logo" className="w-10 h-10 object-contain rounded-xl shadow-lg shadow-knbs-500/20 bg-white p-1" />
             <div>
               <h1 className="text-xl font-black text-gray-900 dark:text-gray-100">TabletTrack</h1>
               <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">KNBS Digital Asset Management</p>
@@ -149,7 +147,7 @@ export default function HomePage() {
           <div className="relative z-10">
             <h2 className="text-4xl lg:text-5xl font-black text-white mb-6">Ready to Get Started?</h2>
             <p className="text-lg text-knbs-100 mb-8 max-w-2xl mx-auto">
-              Join the digital transformation of Kenya's statistical operations.
+              Join the digital transformation of Kenya&apos;s statistical operations.
               Login to access the dashboard or register as field staff.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -175,9 +173,7 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-gradient-to-br from-knbs-500 to-knbs-600 rounded-lg flex items-center justify-center">
-                <Tablet className="w-5 h-5 text-white" />
-              </div>
+              <img src="/logo-KNBS.png" alt="KNBS Logo" className="w-8 h-8 object-contain rounded-lg bg-white p-0.5" />
               <div>
                 <p className="text-sm font-bold text-gray-900 dark:text-gray-100">TabletTrack</p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">KNBS © 2026</p>

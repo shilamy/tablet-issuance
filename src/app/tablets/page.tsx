@@ -45,6 +45,8 @@ import Layout from "@/components/Layout";
 import { useTabletStore } from "@/store/tabletStore";
 import { TabletDevice } from "@/types/tablets";
 import { mockTablets } from "@/data/mockdata";
+import { ImportModal } from "@/components/ui/import-modal";
+import { importTablets } from "@/lib/import";
 
 const statusOptions = [
   { value: "all", label: "All Tablets", color: "bg-gray-100 text-gray-800", icon: Tablet },
@@ -112,7 +114,7 @@ const exportOptions = [
 
 export default function TabletsPage() {
   // Get tablets from store
-  const { tablets: storeTablets, refreshData } = useTabletStore();
+  const { tablets: storeTablets, refreshData, addTablet } = useTabletStore();
 
   const [tablets, setTablets] = useState<TabletDevice[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -122,6 +124,7 @@ export default function TabletsPage() {
   const [selectedTablets, setSelectedTablets] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   const [sortConfig, setSortConfig] = useState<{ key: keyof TabletDevice; direction: 'asc' | 'desc' } | null>(null);
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -390,14 +393,6 @@ export default function TabletsPage() {
               )}
             </div>
 
-            {/* Scan Button */}
-            <Link
-              href="/tablets/scan"
-              className="flex items-center px-3 py-2 bg-white border border-gray-300 hover:bg-gray-50 text-gray-800 rounded-lg text-sm"
-            >
-              <Barcode className="w-4 h-4 mr-1.5" />
-              Scan
-            </Link>
 
             <Link
               href="/tablets/new"
@@ -406,6 +401,13 @@ export default function TabletsPage() {
               <Plus className="w-4 h-4 mr-1.5" />
               Add Tablet
             </Link>
+            <button
+              onClick={() => setShowImportModal(true)}
+              className="flex items-center px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm"
+            >
+              <Upload className="w-4 h-4 mr-1.5" />
+              Import CSV
+            </button>
           </div>
         </div>
 
@@ -515,14 +517,6 @@ export default function TabletsPage() {
                 )}
               </button>
 
-              {/* Quick Scan Button */}
-              <Link
-                href="/tablets/scan"
-                className="flex items-center px-3 py-2 bg-knbs-50 border border-knbs-200 text-knbs-700 hover:bg-knbs-100 rounded-lg text-sm"
-              >
-                <QrCode className="w-4 h-4 mr-1.5" />
-                Quick Scan
-              </Link>
             </div>
           </div>
 
@@ -1013,17 +1007,24 @@ export default function TabletsPage() {
                 <span className="text-sm font-medium text-gray-900">Advanced Export</span>
                 <ExternalLink className="w-4 h-4 text-gray-400" />
               </Link>
-              <Link
-                href="/tablets/scan"
-                className="flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg"
-              >
-                <span className="text-sm font-medium text-gray-900">Barcode Scanner</span>
-                <Barcode className="w-4 h-4 text-gray-400" />
-              </Link>
+
             </div>
           </div>
         </div>
       </div>
+
+      <ImportModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        onImport={(data) => {
+          // Add imported tablets to store
+          data.forEach((tablet) => {
+            addTablet(tablet as TabletDevice);
+          });
+        }}
+        type="tablets"
+        importFunction={importTablets}
+      />
     </Layout>
   );
 }

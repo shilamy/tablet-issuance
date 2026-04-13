@@ -2,13 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/lib/auth";
+import { useAuth } from "@/components/providers/auth-provider";
 import { Mail, Lock, AlertCircle, ArrowRight, Loader2 } from "lucide-react";
 import Link from "next/link";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login } = useAuth();
+  const { login, isLoading: isAuthLoading } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -26,11 +26,14 @@ export default function LoginPage() {
       return;
     }
 
-    // Simulate network request
-    setTimeout(() => {
-      login(email);
+    const success = await login(email, password);
+    
+    if (success) {
       router.push("/dashboard");
-    }, 1000);
+    } else {
+      setError("Invalid email or password. Please try again.");
+      setIsLoading(false);
+    }
   }
 
   return (
