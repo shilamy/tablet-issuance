@@ -15,14 +15,20 @@ import {
 } from "lucide-react";
 import Layout from "@/components/Layout";
 import { cn } from "@/lib/utils";
-import { mockParticipants } from "@/data/mockdata";
+import { useTabletStore } from "@/store/tabletStore";
 
 export default function EditParticipantPage() {
     const params = useParams();
     const router = useRouter();
     const participantId = params?.participantsId as string;
 
-    const participant = mockParticipants.find(p => p.id === participantId);
+    const { participants, refreshData } = useTabletStore();
+
+    const participant = participants.find(p => p.id === participantId);
+
+    useEffect(() => {
+        if (!participant) refreshData();
+    }, [participant, refreshData]);
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
@@ -66,7 +72,7 @@ export default function EditParticipantPage() {
                         <User className="w-8 h-8 text-gray-400" />
                     </div>
                     <h2 className="text-xl font-semibold text-gray-900 mb-2">Participant Not Found</h2>
-                    <p className="text-gray-500 mb-6">The participant you're trying to edit doesn't exist.</p>
+                    <p className="text-gray-500 mb-6">The participant you&apos;re trying to edit doesn&apos;t exist.</p>
                     <Link
                         href="/participants"
                         className="px-4 py-2 bg-knbs-600 text-white rounded-lg hover:bg-knbs-700 transition-colors"
@@ -101,8 +107,21 @@ export default function EditParticipantPage() {
 
         try {
             await new Promise(resolve => setTimeout(resolve, 1000));
-            console.log("Updating participant data:", formData);
-            router.push(`/participants/${participantId}`);
+            // Save via API
+            try {
+                const res = await fetch(`/api/participants/${participantId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData),
+                });
+                if (!res.ok) throw new Error('Failed to update');
+                // refresh store and navigate
+                refreshData();
+                router.push(`/participants/${participantId}`);
+            } catch (err) {
+                console.error(err);
+                alert('Failed to update participant');
+            }
         } catch (error) {
             console.error("Error updating participant:", error);
         } finally {
@@ -156,7 +175,7 @@ export default function EditParticipantPage() {
                                     name="name"
                                     value={formData.name}
                                     onChange={handleChange}
-                                    placeholder="e.g. John Doe"
+                                    placeholder="Full name"
                                     className={cn(
                                         "w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-knbs-500",
                                         errors.name ? "border-red-300 focus:ring-red-200" : "border-gray-300"
@@ -213,7 +232,7 @@ export default function EditParticipantPage() {
                                         name="email"
                                         value={formData.email}
                                         onChange={handleChange}
-                                        placeholder="john@example.com"
+                                        placeholder="email@domain.com"
                                         className={cn(
                                             "w-full pl-9 pr-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-knbs-500",
                                             errors.email ? "border-red-300 focus:ring-red-200" : "border-gray-300"

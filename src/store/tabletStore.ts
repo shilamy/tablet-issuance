@@ -37,7 +37,12 @@ interface TabletStore {
     refreshData: () => void;
 }
 
-const initialState = {\n    tablets: [],\n    participants: [],\n    issuances: [] as IssuanceRecord[],\n    lastUpdated: '',\n  };
+const initialState = {
+    tablets: [],
+    participants: [],
+    issuances: [] as IssuanceRecord[],
+    lastUpdated: '',
+  };
 
 export const useTabletStore = create<TabletStore>()(
     persist(
@@ -260,7 +265,30 @@ export const useTabletStore = create<TabletStore>()(
             // Utility Actions
             resetStore: () => set(initialState),
 
-    refreshData: async () => {\n      try {\n        const [tabletsRes, participantsRes, issuancesRes] = await Promise.all([\n          fetch('/api/tablets'),\n          fetch('/api/participants'),\n          fetch('/api/issuances'),\n        ]);\n\n        if (tabletsRes.ok && participantsRes.ok && issuancesRes.ok) {\n          const tablets = await tabletsRes.json();\n          const participants = await participantsRes.json();\n          const issuances = await issuancesRes.json();\n          \n          set({\n            tablets,\n            participants,\n            issuances,\n            lastUpdated: new Date().toISOString(),\n          });\n        }\n      } catch (error) {\n        console.error('Failed to refresh data:', error);\n      }\n    },
+    refreshData: async () => {
+      try {
+        const [tabletsRes, participantsRes, issuancesRes] = await Promise.all([
+          fetch('/api/tablets'),
+          fetch('/api/participants'),
+          fetch('/api/issuances'),
+        ]);
+
+        if (tabletsRes.ok && participantsRes.ok && issuancesRes.ok) {
+          const tablets = await tabletsRes.json();
+          const participants = await participantsRes.json();
+          const issuances = await issuancesRes.json();
+
+          set({
+            tablets,
+            participants,
+            issuances,
+            lastUpdated: new Date().toISOString(),
+          });
+        }
+      } catch (error) {
+        console.error('Failed to refresh data:', error);
+      }
+    },
         }),
         {
             name: 'tablet-store',

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import { 
   Download, Filter, ChevronLeft, RefreshCw, 
   Save, Eye, Trash2, Clock, BarChart, 
@@ -10,12 +10,8 @@ import {
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import Layout from "@/components/Layout";
-import { TabletDevice } from "@/types/tablet";
-
-// Mock data
-const mockTablets: TabletDevice[] = [
-  // ... (same as your main tablets page)
-];
+import { TabletDevice } from "@/types/tablets";
+import { useTabletStore } from "@/store/tabletStore";
 
 // Saved filters templates
 const savedFilters = [
@@ -26,7 +22,7 @@ const savedFilters = [
   { id: 5, name: "Warranty Expiring", count: 5, color: "bg-purple-100 text-purple-800" },
 ];
 
-export default function ExportFiltered() {
+function ExportFiltered() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
@@ -47,7 +43,8 @@ export default function ExportFiltered() {
   });
 
   const filteredData = useMemo(() => {
-    let result = [...mockTablets];
+    const { tablets: storeTablets } = useTabletStore();
+    let result = [...storeTablets];
 
     // Search filter
     if (activeFilters.search) {
@@ -113,9 +110,10 @@ export default function ExportFiltered() {
     }, 2000);
   };
 
+  const tablets = useTabletStore((s) => s.tablets);
   const statusOptions = ['available', 'issued', 'damaged', 'missing', 'maintenance'];
   const conditionOptions = ['excellent', 'good', 'fair', 'poor'];
-  const locationOptions = Array.from(new Set(mockTablets.map(t => t.location)));
+  const locationOptions = Array.from(new Set((tablets || []).map(t => t.location)));
 
   return (
     <Layout>
@@ -196,7 +194,7 @@ export default function ExportFiltered() {
                       />
                       <span className="ml-3 text-sm text-gray-700 capitalize">{status}</span>
                       <span className="ml-auto text-xs text-gray-500">
-                        ({mockTablets.filter(t => t.status === status).length})
+                        ({tablets.filter(t => t.status === status).length})
                       </span>
                     </label>
                   ))}
@@ -230,7 +228,7 @@ export default function ExportFiltered() {
                       />
                       <span className="ml-3 text-sm text-gray-700 capitalize">{condition}</span>
                       <span className="ml-auto text-xs text-gray-500">
-                        ({mockTablets.filter(t => t.condition === condition).length})
+                        ({tablets.filter(t => t.condition === condition).length})
                       </span>
                     </label>
                   ))}
@@ -293,9 +291,9 @@ export default function ExportFiltered() {
                       />
                       <span className="ml-3 text-sm text-gray-700 capitalize">{option}</span>
                       <span className="ml-auto text-xs text-gray-500">
-                        {option === 'all' && `(${mockTablets.length})`}
-                        {option === 'assigned' && `(${mockTablets.filter(t => t.assignedTo).length})`}
-                        {option === 'unassigned' && `(${mockTablets.filter(t => !t.assignedTo).length})`}
+                        {option === 'all' && `(${tablets.length})`}
+                        {option === 'assigned' && `(${tablets.filter(t => t.assignedTo).length})`}
+                        {option === 'unassigned' && `(${tablets.filter(t => !t.assignedTo).length})`}
                       </span>
                     </label>
                   ))}
@@ -388,11 +386,11 @@ export default function ExportFiltered() {
               <h2 className="text-lg font-bold text-gray-900 mb-4">Results Preview</h2>
               
               <div className="space-y-4">
-                <div className="text-center p-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg">
+                    <div className="text-center p-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg">
                   <div className="text-3xl font-bold text-gray-900 mb-2">{filteredData.length}</div>
                   <div className="text-gray-600">Tablets Match Filters</div>
                   <div className="text-sm text-gray-500 mt-2">
-                    {filteredData.length} of {mockTablets.length} total tablets
+                    {filteredData.length} of {tablets.length} total tablets
                   </div>
                 </div>
                 
@@ -422,8 +420,8 @@ export default function ExportFiltered() {
                   </div>
                 </div>
                 
-                <div className="pt-4 border-t border-gray-200">
-                  <div className="text-sm font-medium text-gray-900 mb-3">Sample Data:</div>
+                  <div className="pt-4 border-t border-gray-200">
+                  <div className="text-sm font-medium text-gray-900 mb-3">Preview Data:</div>
                   <div className="space-y-2 max-h-60 overflow-y-auto">
                     {filteredData.slice(0, 5).map(tablet => (
                       <div
@@ -593,4 +591,8 @@ export default function ExportFiltered() {
       </div>
     </Layout>
   );
+}
+
+export default function ExportFilteredWithSuspense() {
+  return <Suspense fallback={<div className="p-8">Loading…</div>}><ExportFiltered /></Suspense>;
 }

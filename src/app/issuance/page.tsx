@@ -1,7 +1,8 @@
 "use client";
 
 import Layout from "@/components/Layout";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useTabletStore } from '@/store/tabletStore';
 import {
   CheckCircle2,
   XCircle,
@@ -21,95 +22,54 @@ export default function IssuancePage() {
   const [feedbackText, setFeedbackText] = useState("");
   const [activeTab, setActiveTab] = useState<"requests" | "registrations">("requests");
 
-  // Mock tablet requests from activity holders
-  const tabletRequests = [
-    {
-      id: "REQ-001",
-      requester: "Dr. Jane Mwangi",
-      activity: "2024 Kenya Population and Housing Census",
-      quantity: 150,
-      counties: ["Nairobi", "Kiambu", "Machakos"],
-      type: "main",
-      date: "2026-02-15",
-      status: "pending"
-    },
-    {
-      id: "REQ-002",
-      requester: "Prof. Peter Ochieng",
-      activity: "Continuous Household Surveys (KCHSP)",
-      quantity: 45,
-      counties: ["Kisumu", "Siaya", "Homa Bay"],
-      type: "pilot",
-      date: "2026-02-14",
-      status: "pending"
-    },
-    {
-      id: "REQ-003",
-      requester: "Mary Wanjiku",
-      activity: "Agriculture and Livestock Surveys",
-      quantity: 80,
-      counties: ["Nakuru", "Narok", "Kajiado", "Laikipia"],
-      type: "listing",
-      date: "2026-02-13",
-      status: "pending"
-    }
-  ];
+  const { tablets, participants, issuances, refreshData } = useTabletStore();
 
-  // Mock field staff registrations
-  const registrations = [
-    {
-      id: "REG-001",
-      name: "John Kamau",
-      idNumber: "12345678",
-      phone: "+254 712 345 678",
-      email: "john.kamau@example.com",
-      role: "Supervisor",
-      activity: "2024 Kenya Population and Housing Census",
-      county: "Nairobi",
-      tabletId: "KNBS-TB-0001",
-      date: "2026-02-16",
-      status: "pending"
-    },
-    {
-      id: "REG-002",
-      name: "Sarah Akinyi",
-      idNumber: "87654321",
-      phone: "+254 723 456 789",
-      email: "sarah.akinyi@example.com",
-      role: "Research Assistant",
-      activity: "2024 Kenya Population and Housing Census",
-      county: "Kiambu",
-      tabletId: "KNBS-TB-0002",
-      date: "2026-02-16",
-      status: "pending"
-    },
-    {
-      id: "REG-003",
-      name: "David Otieno",
-      idNumber: "11223344",
-      phone: "+254 734 567 890",
-      email: "david.otieno@example.com",
-      role: "Supervisor",
-      activity: "Continuous Household Surveys (KCHSP)",
-      county: "Kisumu",
-      tabletId: "KNBS-TB-0015",
-      date: "2026-02-15",
-      status: "pending"
-    },
-    {
-      id: "REG-004",
-      name: "Grace Njeri",
-      idNumber: "55667788",
-      phone: "+254 745 678 901",
-      email: "grace.njeri@example.com",
-      role: "Research Assistant",
-      activity: "Agriculture and Livestock Surveys",
-      county: "Nakuru",
-      tabletId: "KNBS-TB-0023",
-      date: "2026-02-15",
-      status: "pending"
+  useEffect(() => {
+    // Load latest data into the store when the page mounts
+    refreshData();
+  }, [refreshData]);
+
+  // Build tablet request summaries from pending participants grouped by activity
+  const pendingParticipants = participants.filter((p) => p.status === 'pending');
+
+  const requestMap: Record<string, { id: string; requester: string; activity: string; quantity: number; counties: string[]; type: string; date: string; status: string }> = {};
+
+  pendingParticipants.forEach((p, idx) => {
+    const key = p.activity || 'General';
+    if (!requestMap[key]) {
+      requestMap[key] = {
+        id: `REQ-${idx + 1}`,
+        requester: 'Multiple',
+        activity: key,
+        quantity: 0,
+        counties: [p.location || ''],
+        type: 'main',
+        date: p.joinDate || new Date().toISOString().split('T')[0],
+        status: 'pending',
+      };
     }
-  ];
+    requestMap[key].quantity += 1;
+    if (p.location && !requestMap[key].counties.includes(p.location)) {
+      requestMap[key].counties.push(p.location);
+    }
+  });
+
+  const tabletRequests = Object.values(requestMap);
+
+  // Registrations: map pending participants to registration shape used by UI
+  const registrations = pendingParticipants.map((p, i) => ({
+    id: p.id || `REG-${i + 1}`,
+    name: p.name,
+    idNumber: p.id || '',
+    phone: p.phone || '',
+    email: p.email || '',
+    role: p.role || 'Field Staff',
+    activity: p.activity || 'General',
+    county: p.location || '',
+    tabletId: p.tabletSerial || 'TBD',
+    date: p.joinDate || '',
+    status: p.status || 'pending',
+  }));
 
   const handleApproveRequests = () => {
     if (selectedRequests.length === 0) return;
@@ -224,6 +184,7 @@ export default function IssuancePage() {
                             setSelectedRequests(selectedRequests.filter(id => id !== request.id));
                           }
                         }}
+                        aria-label={`Select request ${request.activity}`}
                         className="mt-1 w-5 h-5 rounded border-gray-300 text-knbs-600 focus:ring-knbs-500"
                       />
                       <div className="flex-1">
@@ -315,6 +276,7 @@ export default function IssuancePage() {
                             setSelectedRegistrations(selectedRegistrations.filter(id => id !== reg.id));
                           }
                         }}
+                        aria-label={`Select registration ${reg.name}`}
                         className="mt-1 w-5 h-5 rounded border-gray-300 text-knbs-600 focus:ring-knbs-500"
                       />
                       <div className="flex-1">
@@ -363,6 +325,6 @@ export default function IssuancePage() {
 }
 
 // Helper function
-function cn(...classes: any[]) {
+function cn(...classes: (string | undefined | null | boolean)[]) {
   return classes.filter(Boolean).join(" ");
 }

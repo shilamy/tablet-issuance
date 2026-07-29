@@ -11,7 +11,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Layout from "@/components/Layout";
-import { TabletDevice, ExportConfig } from "@/types/tablet";
+import { TabletDevice, ExportConfig } from "@/types/tablets";
 
 type ExportSchedule = {
   id: number;
@@ -93,7 +93,7 @@ export default function ExportCustom() {
         frequency: scheduledExport.frequency,
         nextRun: new Date(Date.now() + 86400000).toISOString(),
         fields: config.includeFields.length,
-        status: 'active'
+        status: 'active' as const
       };
       setSchedules(prev => [newSchedule, ...prev]);
       alert('Export scheduled successfully!');
@@ -194,14 +194,14 @@ export default function ExportCustom() {
                     
                     <div className="space-y-4">
                       {Object.entries(fieldCategories).map(([category, fields]) => {
-                        const selectedCount = fields.filter(f => config.includeFields.includes(f as any)).length;
+                        const selectedCount = fields.filter(f => config.includeFields.includes(f as keyof TabletDevice)).length;
                         return (
                           <div key={category} className="border border-gray-200 rounded-lg p-4">
                             <div className="flex items-center justify-between mb-4">
                               <div className="flex items-center">
                                 <input
                                   type="checkbox"
-                                  checked={fields.every(f => config.includeFields.includes(f as any))}
+                                  checked={fields.every(f => config.includeFields.includes(f as keyof TabletDevice))}
                                   onChange={() => handleSelectAll(category)}
                                   className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
                                 />
@@ -220,7 +220,7 @@ export default function ExportCustom() {
                                 >
                                   <input
                                     type="checkbox"
-                                    checked={config.includeFields.includes(field as any)}
+                                    checked={config.includeFields.includes(field as keyof TabletDevice)}
                                     onChange={() => handleFieldToggle(field)}
                                     className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
                                   />
@@ -269,7 +269,7 @@ export default function ExportCustom() {
                           {formatOptions.map(format => (
                             <button
                               key={format.id}
-                              onClick={() => setConfig(prev => ({ ...prev, format: format.id as any }))}
+                               onClick={() => setConfig(prev => ({ ...prev, format: format.id }))}
                               className={`p-4 rounded-lg border-2 ${
                                 config.format === format.id
                                   ? 'border-blue-500 bg-blue-50'

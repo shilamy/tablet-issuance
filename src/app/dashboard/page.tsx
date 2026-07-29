@@ -16,7 +16,7 @@ import {
   Send,
   Plus
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "@/components/ui/toast";
 
 export default function DashboardPage() {
@@ -29,72 +29,46 @@ export default function DashboardPage() {
     notes: ""
   });
 
-  // Mock data synced with other pages
-  const stats = {
-    totalTablets: 5000,
-    availableTablets: 3245,
-    issuedTablets: 1523,
-    reservedTablets: 232,
-    pendingRequests: 3,
-    pendingRegistrations: 4,
-    activeSurveys: 10
-  };
+  const [stats, setStats] = useState({
+    totalTablets: 0,
+    availableTablets: 0,
+    issuedTablets: 0,
+    reservedTablets: 0,
+    pendingRequests: 0,
+    pendingRegistrations: 0,
+    activeSurveys: 0,
+  });
 
-  const activities = [
-    "2024 Kenya Population and Housing Census",
-    "Continuous Household Surveys (KCHSP)",
-    "Integrated Household Budget Surveys (KIHBS 2025/26)",
-    "Labour Force Surveys",
-    "Agriculture and Livestock Surveys",
-    "Building and Construction Surveys",
-    "Industrial Production and Enterprise Surveys",
-    "2025 Remittances Household Survey (RHS)"
-  ];
+  const [activities, setActivities] = useState<{ id: string; name: string }[]>([]);
+  const [counties, setCounties] = useState<{ id: string; name: string }[]>([]);
+  const [recentRequests, setRecentRequests] = useState<any[]>([]);
+  const [recentRegistrations, setRecentRegistrations] = useState<any[]>([]);
 
-  const counties = [
-    "Nairobi", "Mombasa", "Kisumu", "Nakuru", "Eldoret", "Thika", "Malindi", "Kitale",
-    "Garissa", "Kakamega", "Nyeri", "Meru", "Machakos", "Kiambu", "Kajiado", "Narok"
-  ];
+  useEffect(() => {
+    // Load data in parallel
+    Promise.all([
+      fetch('/api/tablets').then(r => r.ok ? r.json() : []),
+      fetch('/api/issuances').then(r => r.ok ? r.json() : []),
+      fetch('/api/request-tablets').then(r => r.ok ? r.json() : []),
+      fetch('/api/participants').then(r => r.ok ? r.json() : []),
+      fetch('/api/activities').then(r => r.ok ? r.json() : []),
+      fetch('/api/counties').then(r => r.ok ? r.json() : []),
+    ]).then(([tablets, issuances, requests, participants, activitiesList, countiesList]) => {
+      const totalTablets = (tablets || []).length;
+      const availableTablets = (tablets || []).filter((t: any) => (t.status || '').toLowerCase() === 'available').length;
+      const issuedTablets = (tablets || []).filter((t: any) => (t.status || '').toLowerCase() === 'issued').length;
+      const reservedTablets = 0; // reserved concept not yet implemented server-side
+      const pendingRequests = (requests || []).filter((r: any) => (r.status || '').toLowerCase() === 'pending').length;
+      const pendingRegistrations = (participants || []).filter((p: any) => (p.status || '').toLowerCase() === 'pending').length;
+      const activeSurveys = (activitiesList || []).length;
 
-  // Recent requests (synced with issuance page)
-  const recentRequests = [
-    {
-      id: "REQ-001",
-      requester: "Dr. Jane Mwangi",
-      activity: "2024 Kenya Population and Housing Census",
-      quantity: 150,
-      status: "pending",
-      date: "2026-02-15"
-    },
-    {
-      id: "REQ-002",
-      requester: "Prof. Peter Ochieng",
-      activity: "Continuous Household Surveys (KCHSP)",
-      quantity: 45,
-      status: "pending",
-      date: "2026-02-14"
-    }
-  ];
-
-  // Recent registrations (synced with issuance page)
-  const recentRegistrations = [
-    {
-      id: "REG-001",
-      name: "John Kamau",
-      role: "Supervisor",
-      activity: "2024 Kenya Population and Housing Census",
-      tabletId: "KNBS-TB-0001",
-      status: "pending"
-    },
-    {
-      id: "REG-002",
-      name: "Sarah Akinyi",
-      role: "Research Assistant",
-      activity: "2024 Kenya Population and Housing Census",
-      tabletId: "KNBS-TB-0002",
-      status: "pending"
-    }
-  ];
+      setStats({ totalTablets, availableTablets, issuedTablets, reservedTablets, pendingRequests, pendingRegistrations, activeSurveys });
+      setActivities(activitiesList || []);
+      setCounties(countiesList || []);
+      setRecentRequests((requests || []).slice(0, 5));
+      setRecentRegistrations((participants || []).filter((p: any) => (p.status || '').toLowerCase() === 'pending').slice(0, 5));
+    }).catch((e) => console.error('Failed to load dashboard data', e));
+  }, []);
 
   const handleSubmitRequest = (e: React.FormEvent) => {
     e.preventDefault();
@@ -148,7 +122,7 @@ export default function DashboardPage() {
                   >
                     <option value="">Select activity</option>
                     {activities.map((activity) => (
-                      <option key={activity} value={activity}>{activity}</option>
+                      <option key={activity.id} value={activity.id}>{activity.name}</option>
                     ))}
                   </select>
                 </div>
@@ -192,7 +166,7 @@ export default function DashboardPage() {
                     className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-xl text-gray-900 dark:text-gray-100 font-medium focus:outline-none focus:ring-2 focus:ring-knbs-500 h-32"
                   >
                     {counties.map((county) => (
-                      <option key={county} value={county}>{county}</option>
+                      <option key={county.id} value={county.id}>{county.name}</option>
                     ))}
                   </select>
                   <p className="text-xs text-gray-500 dark:text-gray-400">Hold Ctrl/Cmd to select multiple</p>

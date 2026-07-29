@@ -11,11 +11,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Layout from "@/components/Layout";
 import { TabletDevice, ExportConfig } from "@/types/tablets";
-
-// Mock data - in real app, fetch from API
-const mockTablets: TabletDevice[] = [
-  // ... use the same mock data from your tablets page
-];
+import { useTabletStore } from "@/store/tabletStore";
 
 const exportTemplates = [
   { id: 'full-inventory', name: 'Full Inventory Report', fields: ['deviceId', 'model', 'status', 'condition', 'location'], format: 'pdf' },
@@ -35,7 +31,7 @@ export default function ExportDashboard() {
     emailNotification: false,
   });
   
-  const [recentExports, setRecentExports] = useState<any[]>([]);
+  const [recentExports, setRecentExports] = useState<{ id: string; filename: string; format: string; timestamp: string; size: string }[]>([]);
   const [isExporting, setIsExporting] = useState(false);
   const [stats, setStats] = useState({
     totalExports: 124,
@@ -99,13 +95,11 @@ export default function ExportDashboard() {
       
       // Add to recent exports
       const newExport = {
-        id: Date.now(),
-        name: exportConfig.filename,
+        id: String(Date.now()),
+        filename: exportConfig.filename,
         format: exportConfig.format,
-        fields: exportConfig.includeFields.length,
         size: `${(Math.random() * 5 + 1).toFixed(1)} MB`,
         timestamp: new Date().toISOString(),
-        status: 'completed'
       };
       
       setRecentExports(prev => [newExport, ...prev.slice(0, 9)]);
@@ -121,6 +115,8 @@ export default function ExportDashboard() {
     }));
   };
 
+  const tablets = useTabletStore((s) => s.tablets);
+
   const exportOptions = [
     {
       title: "Export All Tablets",
@@ -128,7 +124,7 @@ export default function ExportDashboard() {
       icon: FileSpreadsheet,
       href: "/tablets/export/all",
       color: "bg-gradient-to-r from-blue-500 to-indigo-500",
-      stats: { count: mockTablets.length, size: "~5.2 MB" },
+      stats: { count: tablets.length, size: "~5.2 MB" },
       features: ["All records", "Advanced filters", "Multiple formats", "Batch processing"]
     },
     {

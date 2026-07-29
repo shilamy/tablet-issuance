@@ -231,17 +231,15 @@ export function importParticipants(csvString: string): ImportResult<Participant>
   };
 }
 
-// Generate sample CSV template
+// Generate CSV template (headers only)
 export function generateTabletTemplate(): string {
-  return `deviceId,model,serialNumber,imei,os,storage,ram,battery,condition,location,department,notes
-TAB-001,Samsung Galaxy Tab A8,SERIAL001,IMEI001,Android 12,64GB,4GB,100,good,Nairobi HQ,Survey,Test tablet
-TAB-002,Lenovo Tab M10,SERIAL002,IMEI002,Android 11,32GB,3GB,95,excellent,Mombasa Office,Survey,Test tablet 2`;
+  // Provide header-only template (no example rows)
+  return `deviceId,model,serialNumber,imei,os,storage,ram,battery,condition,location,department,notes`;
 }
 
 export function generateParticipantTemplate(): string {
-  return `name,email,phone,location,role,activity,supervisor
-John Doe,john.doe@example.com,+254700123456,Nairobi,Field Officer,Household Survey,Jane Smith
-Jane Smith,jane.smith@example.com,+254700234567,Mombasa,Supervisor,Household Survey,Manager`;
+  // Provide header-only participant template
+  return `name,email,phone,location,role,activity,supervisor`;
 }
 
 // Export to CSV

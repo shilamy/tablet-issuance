@@ -3,6 +3,16 @@ This is a
 
 ## Getting Started
 
+For local development, configure `DATABASE_URL` and run `npx prisma generate`, `npx prisma db push`, then `npm run dev`.
+
+For the split deployment, copy `.env.example` to `.env`, set a strong `POSTGRES_PASSWORD`, and run:
+
+```bash
+docker compose up --build
+```
+
+The frontend is served on port 3000 and the standalone API on port 4000. Read [CAPABILITY_AUDIT.md](CAPABILITY_AUDIT.md) before production rollout.
+
 First, run the development server:
 
 ```bash

@@ -1,31 +1,11 @@
-# Database Migration TODO (PostgreSQL + Prisma)
+# Production readiness backlog
 
-✅ **Steps 1-5 Complete:**
-- Prisma deps/package.json fixed
-- schema.prisma (models, enums)
-- seed.ts (mocks → DB)
-- lib/db.ts
-- API routes: tablets (CRUD), participants (CRUD), issuances (list/create), auth/login
-
-📋 **Step 6: Update auth-provider.tsx** (DB login)
-📋 **Step 7: Replace mockdata in pages**
-📋 **Step 8: User setup** - Set DATABASE_URL in .env, run:
-  ```
-  npx prisma db push
-  npx prisma db seed
-  npm run dev
-  ```
-- Install Prisma deps
-- prisma init
-- Basic schema
-
-## Remaining Steps
-- [ ] Step 2: Define schema.prisma
-- [ ] Step 3: seed.ts
-- [ ] Step 4: DB utils
-- [ ] Step 5: API routes
-- [ ] Step 6: Update auth
-- [ ] Step 7: Replace mocks
-- [ ] Step 8: Migrate/seed/test
-
-Updated: Step 1 complete after confirmation.
+- [x] Separate frontend and standalone API Docker images
+- [x] PostgreSQL deployment configuration and API health check
+- [x] Transactional checkout/check-in
+- [x] Server-side CSV/XLS/XLSX tablet update import
+- [x] Remove password fallback and fake participant submission
+- [ ] Move remaining CRUD, auth, request, and activity handlers exclusively to the API container
+- [ ] Replace opaque auth cookie with signed/session-backed authentication and enforce roles on every mutation
+- [ ] Add API/UI integration tests and migration/backup runbooks
+- [ ] Wire or remove simulated bulk issuance, notifications, scheduled exports, and settings integrations

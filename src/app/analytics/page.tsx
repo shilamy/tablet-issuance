@@ -113,6 +113,6 @@ export default function AnalyticsPage() {
 }
 
 // Simple Helper
-function cn(...classes: any[]) {
+function cn(...classes: (string | undefined | null | boolean)[]) {
     return classes.filter(Boolean).join(" ");
 }

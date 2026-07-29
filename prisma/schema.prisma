@@ -13,8 +13,9 @@ datasource db {
 model User {
   id            String   @id @default(cuid())
   email         String   @unique
+  password      String?
   name          String?
-  role          Role     @default(VIEWER)
+  role          String   @default("VIEWER")
   department    String?
   phone         String?
   createdAt     DateTime @default(now()) @map("created_at")
@@ -24,6 +25,7 @@ model User {
   issuancesCheckout Issuance[] @relation("CheckoutBy")
   issuancesCheckin  Issuance[] @relation("CheckinBy")
   logs              Log[]
+  passwordResets    PasswordReset[]
 
   @@map("users")
 }
@@ -34,12 +36,12 @@ model Participant {
   email            String   @unique
   phone            String?
   location         String
-  status           ParticipantStatus @default(PENDING)
+  status           String   @default("PENDING")
   activity         String
   tabletsIssued    Int      @default(0)
   tabletsReturned  Int      @default(0)
   lastActivity     DateTime?
-  contractStatus   ContractStatus @default(NONE)
+  contractStatus   String   @default("NONE")
   joinDate         DateTime
   contractEndDate  DateTime?
   supervisor       String?
@@ -48,7 +50,7 @@ model Participant {
   // Denormalized tablet info (optional, for quick views)
   tabletSerial     String?
   tabletModel      String?
-  tabletStatus     TabletStatus?
+  tabletStatus     String?
   issueDate        DateTime?
   expectedReturnDate DateTime?
   actualReturnDate DateTime?
@@ -56,6 +58,8 @@ model Participant {
   storageUsed      Int?
   wifiConnected    Boolean?
   lastSync         DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   // Relations
   issuances Issuance[]
@@ -67,7 +71,7 @@ model Tablet {
   id            String        @id @default(cuid())
   deviceId      String        @unique
   model         String
-  status        TabletStatus  @default(AVAILABLE)
+  status        String   @default("AVAILABLE")
   battery       Int?
   storage       String?
   ram           String?
@@ -77,7 +81,7 @@ model Tablet {
   purchaseDate  DateTime?
   warranty      String?
   lastChecked   DateTime?
-  condition     Condition     @default(EXCELLENT)
+  condition     String   @default("EXCELLENT")
   serialNumber  String?       @unique
   imei          String?       @unique
   barcode       String?
@@ -102,7 +106,7 @@ model Issuance {
   actualReturnDate  DateTime?
   checkoutLocation  String
   checkinLocation   String?
-  status            IssuanceStatus   @default(ACTIVE)
+  status            String   @default("ACTIVE")
   notes             String?
 
   // Foreign keys
@@ -122,7 +126,7 @@ model Log {
   id        String   @id @default(cuid())
   userId    String
   action    String   // e.g. "checkout", "checkin", "edit_participant"
-  details   Json?
+  details   String?
   ip        String?
   userAgent String?
 
@@ -133,44 +137,92 @@ model Log {
   @@map("logs")
 }
 
-// Enums
-enum Role {
-  ADMIN
-  MANAGER
-  FIELD_OFFICER
-  VIEWER
+model PasswordReset {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@map("password_resets")
 }
 
-enum ParticipantStatus {
-  ACTIVE
-  INACTIVE
-  PENDING
+// Requests for tablets submitted by activities / teams
+model Activity {
+  id       String           @id @default(cuid())
+  name     String           @unique
+  requests RequestTablets[]
+
+  @@map("activities")
 }
 
-enum ContractStatus {
-  ACTIVE
-  EXPIRED
-  NONE
+model County {
+  id       String           @id @default(cuid())
+  name     String           @unique
+  requests RequestTablets[]
+
+  @@map("counties")
 }
 
-enum TabletStatus {
-  AVAILABLE
-  ISSUED
-  DAMAGED
-  MISSING
-  MAINTENANCE
+model RequestTablets {
+  id         String   @id @default(cuid())
+  requester  String
+  email      String?
+  phone      String?
+  activityId String?
+  activity   Activity? @relation(fields: [activityId], references: [id])
+  counties   County[]
+  quantity   Int
+  type       String?
+  notes      String?
+  status     String   @default("PENDING")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("request_tablets")
 }
 
-enum Condition {
-  EXCELLENT
-  GOOD
-  FAIR
-  POOR
-  DAMAGED
-}
-
-enum IssuanceStatus {
-  ACTIVE
-  RETURNED
-  OVERDUE
-}
+// SQLite does not support enums, so we use Strings in the models above.
+// The enums are kept here for reference if switching back to PostgreSQL.
+// enum Role {
+//   ADMIN
+//   MANAGER
+//   FIELD_OFFICER
+//   VIEWER
+// }
+// 
+// enum ParticipantStatus {
+//   ACTIVE
+//   INACTIVE
+//   PENDING
+// }
+// 
+// enum ContractStatus {
+//   ACTIVE
+//   EXPIRED
+//   NONE
+// }
+// 
+// enum TabletStatus {
+//   AVAILABLE
+//   ISSUED
+//   DAMAGED
+//   MISSING
+//   MAINTENANCE
+// }
+// 
+// enum Condition {
+//   EXCELLENT
+//   GOOD
+//   FAIR
+//   POOR
+//   DAMAGED
+// }
+// 
+// enum IssuanceStatus {
+//   ACTIVE
+//   RETURNED
+//   OVERDUE
+// }

@@ -5,6 +5,7 @@ import { Upload, FileText, Download, AlertCircle, CheckCircle, X, Loader2 } from
 import { cn } from '@/lib/utils';
 import { toast } from '@/components/ui/toast';
 import { generateTabletTemplate, generateParticipantTemplate, ImportError } from '@/lib/import';
+import * as XLSX from 'xlsx';
 
 interface ImportModalProps {
   isOpen: boolean;
@@ -12,9 +13,10 @@ interface ImportModalProps {
   onImport: (data: unknown[]) => void;
   type: 'tablets' | 'participants';
   importFunction: (csv: string) => { success: boolean; data: unknown[]; errors: ImportError[]; totalRows: number; importedCount: number };
+  serverEndpoint?: string;
 }
 
-export function ImportModal({ isOpen, onClose, onImport, type, importFunction }: ImportModalProps) {
+export function ImportModal({ isOpen, onClose, onImport, type, importFunction, serverEndpoint }: ImportModalProps) {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -44,13 +46,19 @@ export function ImportModal({ isOpen, onClose, onImport, type, importFunction }:
     setFile(selectedFile);
     setImportResult(null);
 
-    // Read file content for preview
+    // Read text for CSV and a human-readable sheet preview for Excel.
     const reader = new FileReader();
     reader.onload = (event) => {
-      const content = event.target?.result as string;
-      setPreview(content.substring(0, 500) + (content.length > 500 ? '...' : ''));
+      const extension = selectedFile.name.substring(selectedFile.name.lastIndexOf('.')).toLowerCase();
+      if (extension === '.csv') {
+        const content = event.target?.result as string;
+        setPreview(content.substring(0, 500) + (content.length > 500 ? '...' : ''));
+      } else {
+        const workbook = XLSX.read(event.target?.result, { type: 'array' });
+        setPreview(XLSX.utils.sheet_to_csv(workbook.Sheets[workbook.SheetNames[0]]).substring(0, 500));
+      }
     };
-    reader.readAsText(selectedFile);
+    if (extension === '.csv') reader.readAsText(selectedFile); else reader.readAsArrayBuffer(selectedFile);
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -77,7 +85,12 @@ export function ImportModal({ isOpen, onClose, onImport, type, importFunction }:
     // Read file content
     const reader = new FileReader();
     reader.onload = (event) => {
-      const content = event.target?.result as string;
+      const extension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+      let content = event.target?.result as string;
+      if (extension === '.xlsx' || extension === '.xls') {
+        const workbook = XLSX.read(event.target?.result, { type: 'array' });
+        content = XLSX.utils.sheet_to_csv(workbook.Sheets[workbook.SheetNames[0]]);
+      }
       const result = importFunction(content);
       setImportResult(result);
       setIsProcessing(false);
@@ -86,19 +99,37 @@ export function ImportModal({ isOpen, onClose, onImport, type, importFunction }:
         toast(`Successfully imported ${result.importedCount} ${type}!`, 'success');
       }
     };
-    reader.readAsText(file);
+    if (file.name.toLowerCase().endsWith('.csv')) reader.readAsText(file); else reader.readAsArrayBuffer(file);
   };
 
   const handleConfirmImport = () => {
     if (importResult && importResult.importedCount > 0) {
+      if (serverEndpoint) {
+        void (async () => {
+          const formData = new FormData();
+          formData.append('file', file!);
+          const response = await fetch(serverEndpoint, { method: 'POST', body: formData });
+          const result = await response.json();
+          if (!response.ok) { toast(result.error || 'Import failed', 'error'); return; }
+          toast(`Updated ${result.updatedCount} tablets${result.errors?.length ? `; ${result.errors.length} row(s) skipped` : ''}`, result.errors?.length ? 'warning' : 'success');
+          onImport([]);
+          handleClose();
+        })();
+        return;
+      }
       const reader = new FileReader();
       reader.onload = (event) => {
-        const content = event.target?.result as string;
+        const extension = file!.name.substring(file!.name.lastIndexOf('.')).toLowerCase();
+        let content = event.target?.result as string;
+        if (extension === '.xlsx' || extension === '.xls') {
+          const workbook = XLSX.read(event.target?.result, { type: 'array' });
+          content = XLSX.utils.sheet_to_csv(workbook.Sheets[workbook.SheetNames[0]]);
+        }
         const result = importFunction(content);
         onImport(result.data);
         handleClose();
       };
-      reader.readAsText(file!);
+      if (file!.name.toLowerCase().endsWith('.csv')) reader.readAsText(file!); else reader.readAsArrayBuffer(file!);
     }
   };
 
@@ -154,7 +185,7 @@ export function ImportModal({ isOpen, onClose, onImport, type, importFunction }:
                 <FileText className="w-5 h-5 text-blue-600" />
                 <div>
                   <p className="font-medium text-gray-900 dark:text-gray-100">Need a template?</p>
-                  <p className="text-sm text-gray-500">Download our sample CSV template</p>
+                  <p className="text-sm text-gray-500">Download CSV template</p>
                 </div>
               </div>
               <button

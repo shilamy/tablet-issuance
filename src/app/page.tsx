@@ -12,7 +12,7 @@ import {
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-knbs-50/30 dark:from-gray-950 dark:via-gray-900 dark:to-knbs-950/20">
+    <div className="min-h-screen bg-white bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-knbs-50/50 via-white to-white dark:from-gray-950 dark:via-gray-900 dark:to-knbs-950/20">
       {/* Header */}
       <header className="border-b border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
@@ -44,7 +44,7 @@ export default function HomePage() {
 
             <h2 className="text-5xl lg:text-6xl font-black text-gray-900 dark:text-gray-100 leading-tight tracking-tight">
               Streamline Your
-              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-knbs-500 to-knbs-600">
+              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-knbs-600 to-knbs-500">
                 Tablet Issuance
               </span>
             </h2>
@@ -140,7 +140,7 @@ export default function HomePage() {
 
       {/* CTA Section */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-        <div className="bg-gradient-to-br from-knbs-500 to-knbs-600 rounded-3xl p-12 lg:p-16 text-center shadow-2xl shadow-knbs-500/20 relative overflow-hidden">
+        <div className="bg-gradient-to-br from-knbs-600 to-knbs-500 rounded-3xl p-12 lg:p-16 text-center shadow-2xl shadow-knbs-500/20 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full -mr-48 -mt-48 blur-3xl"></div>
           <div className="absolute bottom-0 left-0 w-96 h-96 bg-white/10 rounded-full -ml-48 -mb-48 blur-3xl"></div>
 
@@ -173,6 +173,7 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">
+
               <img src="/logo-KNBS.png" alt="KNBS Logo" className="w-8 h-8 object-contain rounded-lg bg-white p-0.5" />
               <div>
                 <p className="text-sm font-bold text-gray-900 dark:text-gray-100">TabletTrack</p>

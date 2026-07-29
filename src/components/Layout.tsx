@@ -12,11 +12,12 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 transition-colors duration-300">
+    <div className="min-h-screen bg-white bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-knbs-50/30 via-white to-white dark:from-gray-950 dark:via-gray-900 dark:to-knbs-950/20 transition-colors duration-300">
       <Header />
 
       <div className="flex">
         {/* Sidebar - Hidden on mobile, shown on desktop */}
+        
         <Sidebar />
 
         {/* Main content area */}

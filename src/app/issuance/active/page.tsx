@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   Package, User, Tablet, Calendar, MapPin,
   ChevronLeft, Search, Filter, Download,
@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import Layout from "@/components/Layout";
+import { useTabletStore } from "@/store/tabletStore";
 
 type ActiveIssuance = {
   id: string;
@@ -22,29 +23,20 @@ type ActiveIssuance = {
   status: "active" | "overdue";
 };
 
-const mockIssuances: ActiveIssuance[] = [
-  {
-    id: "ACT-001",
-    participantId: "P-1001",
-    participantName: "John Doe",
-    tabletId: "KNBS-TAB-001",
-    tabletModel: "Samsung Galaxy Tab A8",
-    checkedOutAt: "2024-01-10T10:00:00Z",
-    expectedReturn: "2024-01-15T18:00:00Z",
-    checkedOutBy: "Admin User",
-    location: "Nairobi Office",
-    status: "active",
-  },
-];
 
 export default function ActiveIssuancesPage() {
-  const issuances = mockIssuances;
+  const { issuances, refreshData } = useTabletStore();
+
+  useEffect(() => {
+    // Ensure store is populated from the API
+    refreshData();
+  }, [refreshData]);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
 
   const filteredIssuances = issuances.filter(issuance => {
     if (filter === 'overdue') {
-      const isOverdue = new Date(issuance.expectedReturn) < new Date();
+      const isOverdue = new Date(issuance.expectedReturnDate) < new Date();
       if (!isOverdue) return false;
     }
     
@@ -53,7 +45,7 @@ export default function ActiveIssuancesPage() {
     return (
       issuance.participantName.toLowerCase().includes(search.toLowerCase()) ||
       issuance.tabletId.toLowerCase().includes(search.toLowerCase()) ||
-      issuance.location.toLowerCase().includes(search.toLowerCase())
+      issuance.checkoutLocation.toLowerCase().includes(search.toLowerCase())
     );
   });
 
@@ -133,7 +125,7 @@ export default function ActiveIssuancesPage() {
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {filteredIssuances.map((issuance) => {
-                  const isOverdue = new Date(issuance.expectedReturn) < new Date();
+      const isOverdue = new Date(issuance.expectedReturnDate) < new Date();
                   
                   return (
                     <tr key={issuance.id} className="hover:bg-gray-50">
@@ -161,17 +153,17 @@ export default function ActiveIssuancesPage() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="text-sm text-gray-900">
-                          {new Date(issuance.checkedOutAt).toLocaleDateString()}
+                          {new Date(issuance.checkoutDate).toLocaleDateString()}
                         </div>
                         <div className="text-xs text-gray-500">
-                          {new Date(issuance.checkedOutAt).toLocaleTimeString()}
+                          {new Date(issuance.checkoutDate).toLocaleTimeString()}
                         </div>
                       </td>
                       <td className="px-6 py-4">
                         <div className={`text-sm font-medium ${
                           isOverdue ? 'text-rose-600' : 'text-gray-900'
                         }`}>
-                          {new Date(issuance.expectedReturn).toLocaleDateString()}
+                          {new Date(issuance.expectedReturnDate).toLocaleDateString()}
                         </div>
                         <div className={`text-xs ${
                           isOverdue ? 'text-rose-500 font-medium' : 'text-gray-500'
@@ -182,7 +174,7 @@ export default function ActiveIssuancesPage() {
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
                           <MapPin className="w-4 h-4 text-gray-400" />
-                          <span className="text-sm text-gray-900">{issuance.location}</span>
+                          <span className="text-sm text-gray-900">{issuance.checkoutLocation}</span>
                         </div>
                       </td>
                       <td className="px-6 py-4">
@@ -232,7 +224,7 @@ export default function ActiveIssuancesPage() {
               <div>
                 <div className="text-sm text-gray-600">Overdue</div>
                 <div className="text-2xl font-bold text-rose-600">
-                  {issuances.filter(i => new Date(i.expectedReturn) < new Date()).length}
+                  {issuances.filter(i => new Date(i.expectedReturnDate) < new Date()).length}
                 </div>
               </div>
               <AlertCircle className="w-8 h-8 text-rose-500" />

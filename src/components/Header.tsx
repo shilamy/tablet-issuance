@@ -13,6 +13,7 @@ import {
   X
 } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/components/providers/auth-provider";
 import { useRouter } from "next/navigation";
@@ -67,15 +68,17 @@ export default function Header() {
             >
               {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </button>
-
             <Link href="/dashboard" className="flex items-center space-x-3 group transition-all duration-300">
-              <img src="/logo-KNBS.png" alt="KNBS Logo" className="h-10 w-10 object-contain rounded-xl shadow-lg shadow-knbs-500/20 group-hover:scale-105 transition-transform bg-white p-1" />
+              <Image src="/logo-KNBS.png" alt="KNBS Logo" width={40} height={40} className="h-10 w-10 object-contain rounded-xl shadow-lg shadow-knbs-500/20 group-hover:scale-105 transition-transform bg-white p-1" priority />
+              
+             
+
               <div className="hidden sm:block">
                 <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600 dark:from-gray-100 dark:to-gray-400">TabletTrack</h1>
                 <p className="text-[10px] uppercase tracking-widest font-semibold text-knbs-500 -mt-0.5">KNBS System</p>
               </div>
             </Link>
-
+       
             {/* Desktop Search */}
             <div className="hidden lg:block ml-10 relative group">
               <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-knbs-500 transition-colors">

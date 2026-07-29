@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTabletStore } from "@/store/tabletStore";
 import Layout from "@/components/Layout";
 import { toast } from "@/components/ui/toast";
 
@@ -112,21 +113,50 @@ export default function NewTabletPage() {
     return Object.keys(newErrors).length === 0;
   };
 
+  const { refreshData } = useTabletStore();
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
-    
+
     setIsSubmitting(true);
-    
-    // Simulate API call
-    setTimeout(() => {
-      setIsSubmitting(false);
-      toast(`Tablet ${form.deviceId} added successfully!`, "success");
+
+    try {
+      const res = await fetch('/api/tablets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          deviceId: form.deviceId,
+          serialNumber: form.serialNumber,
+          imei: form.imei,
+          model: form.model,
+          status: form.status,
+          condition: form.condition,
+          battery: form.battery,
+          storage: form.storage,
+          ram: form.ram,
+          os: form.os,
+          location: form.location,
+          purchaseDate: form.purchaseDate || undefined,
+          warranty: form.warranty,
+          department: form.department,
+          notes: form.notes,
+        }),
+      });
+
+      if (!res.ok) throw new Error('Failed to create tablet');
+      toast(`Tablet ${form.deviceId} added successfully!`, 'success');
+      await refreshData();
       router.push('/tablets');
-    }, 2000);
+    } catch (err) {
+      console.error(err);
+      toast('Failed to add tablet', 'error');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const tabs = [
@@ -214,7 +244,7 @@ export default function NewTabletPage() {
                               value={form.deviceId}
                               onChange={(e) => setForm(prev => ({ ...prev, deviceId: e.target.value }))}
                               className={`flex-1 px-3 py-2 border ${errors.deviceId ? 'border-red-300' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
-                              placeholder="KNBS-TAB-001"
+                              placeholder="Enter device ID"
                             />
                             <button
                               type="button"
@@ -533,7 +563,7 @@ export default function NewTabletPage() {
                           <div>
                             <div className="font-medium text-gray-900 mb-1">Assignment Note</div>
                             <p className="text-sm text-gray-600">
-                              Assigning a tablet to a staff member will automatically update its status to "Issued".
+                              Assigning a tablet to a staff member will automatically update its status to &quot;Issued&quot;.
                               Leave these fields empty if the tablet is not currently assigned.
                             </p>
                           </div>

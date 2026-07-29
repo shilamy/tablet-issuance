@@ -27,7 +27,7 @@ export default function TabletDetailPage() {
             Tablet Not Found
           </h2>
           <p className="text-gray-500 dark:text-gray-400 mb-6">
-            The tablet with ID "{deviceId}" could not be found.
+            The tablet with ID &quot;{deviceId}&quot; could not be found.
           </p>
           <Link
             href="/tablets"

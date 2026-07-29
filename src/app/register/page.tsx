@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
     User,
@@ -32,33 +32,26 @@ export default function RegisterPage() {
     const [searchQuery, setSearchQuery] = useState("");
     const [filterStatus, setFilterStatus] = useState("all");
 
-    // Mock available tablets
-    const tablets = [
-        { id: "KNBS-TB-0001", model: "Samsung Galaxy Tab A8", status: "available", specs: "10.5\" | 4GB RAM | 64GB" },
-        { id: "KNBS-TB-0002", model: "Samsung Galaxy Tab A8", status: "available", specs: "10.5\" | 4GB RAM | 64GB" },
-        { id: "KNBS-TB-0015", model: "Samsung Galaxy Tab S7", status: "available", specs: "11\" | 6GB RAM | 128GB" },
-        { id: "KNBS-TB-0023", model: "Samsung Galaxy Tab A8", status: "available", specs: "10.5\" | 4GB RAM | 64GB" },
-        { id: "KNBS-TB-0034", model: "Samsung Galaxy Tab S7", status: "available", specs: "11\" | 6GB RAM | 128GB" },
-        { id: "KNBS-TB-0045", model: "Samsung Galaxy Tab A8", status: "available", specs: "10.5\" | 4GB RAM | 64GB" },
-        { id: "KNBS-TB-0056", model: "Lenovo Tab M10", status: "available", specs: "10.1\" | 4GB RAM | 64GB" },
-        { id: "KNBS-TB-0067", model: "Samsung Galaxy Tab A8", status: "available", specs: "10.5\" | 4GB RAM | 64GB" },
-    ];
+    const [tablets, setTablets] = useState<{ id: string; model: string; status?: string; specs?: string }[]>([]);
+    const [activities, setActivities] = useState<{ id: string; name: string }[]>([]);
+    const [counties, setCounties] = useState<{ id: string; name: string }[]>([]);
 
-    const activities = [
-        "2024 Kenya Population and Housing Census",
-        "Continuous Household Surveys (KCHSP)",
-        "Integrated Household Budget Surveys (KIHBS 2025/26)",
-        "Labour Force Surveys",
-        "Agriculture and Livestock Surveys",
-        "Building and Construction Surveys",
-        "Industrial Production and Enterprise Surveys",
-        "2025 Remittances Household Survey (RHS)"
-    ];
+    useEffect(() => {
+        fetch('/api/tablets')
+            .then((r) => r.json())
+            .then((data) => setTablets((data || []).map((t: any) => ({ id: t.deviceId || t.id, model: t.model, status: t.status, specs: `${t.ram || ''} | ${t.storage || ''}` }))))
+            .catch((e) => console.error('Failed to load tablets', e));
 
-    const counties = [
-        "Nairobi", "Mombasa", "Kisumu", "Nakuru", "Eldoret", "Thika", "Malindi", "Kitale",
-        "Garissa", "Kakamega", "Nyeri", "Meru", "Machakos", "Kiambu", "Kajiado", "Narok"
-    ];
+        fetch('/api/activities')
+            .then((r) => r.json())
+            .then((data) => setActivities(data || []))
+            .catch((e) => console.error('Failed to load activities', e));
+
+        fetch('/api/counties')
+            .then((r) => r.json())
+            .then((data) => setCounties(data || []))
+            .catch((e) => console.error('Failed to load counties', e));
+    }, []);
 
     const filteredTablets = tablets.filter(tablet => {
         const matchesSearch = tablet.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -169,7 +162,7 @@ export default function RegisterPage() {
                                         value={formData.email}
                                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                                         className="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-xl text-gray-900 dark:text-gray-100 font-medium focus:outline-none focus:ring-2 focus:ring-knbs-500 dark:focus:ring-knbs-400 transition-all"
-                                        placeholder="your.email@example.com"
+                                        placeholder="email@domain.com"
                                     />
                                 </div>
                             </div>
@@ -209,7 +202,7 @@ export default function RegisterPage() {
                                 >
                                     <option value="">Select activity</option>
                                     {activities.map((activity) => (
-                                        <option key={activity} value={activity}>{activity}</option>
+                                        <option key={activity.id} value={activity.id}>{activity.name}</option>
                                     ))}
                                 </select>
                             </div>
@@ -226,7 +219,7 @@ export default function RegisterPage() {
                                     >
                                         <option value="">Select county</option>
                                         {counties.map((county) => (
-                                            <option key={county} value={county}>{county}</option>
+                                            <option key={county.id} value={county.id}>{county.name}</option>
                                         ))}
                                     </select>
                                 </div>
@@ -318,6 +311,6 @@ export default function RegisterPage() {
 }
 
 // Helper function
-function cn(...classes: any[]) {
+function cn(...classes: (string | undefined | null | boolean)[]) {
     return classes.filter(Boolean).join(" ");
 }

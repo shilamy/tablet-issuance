@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -30,7 +30,7 @@ import {
     MoreVertical,
     XCircle
 } from "lucide-react";
-import { mockParticipants } from "@/data/mockdata";
+import { useTabletStore } from "@/store/tabletStore";
 import { cn } from "@/lib/utils";
 import Layout from "@/components/Layout";
 
@@ -39,7 +39,14 @@ export default function ParticipantDetailsPage() {
     const router = useRouter();
     const participantId = params?.participantsId as string;
 
-    const participant = mockParticipants.find(p => p.id === participantId);
+    const { participants, refreshData } = useTabletStore();
+
+    const participant = participants.find(p => p.id === participantId);
+
+    useEffect(() => {
+        // If participant not loaded yet, fetch from API/store
+        if (!participant) refreshData();
+    }, [participant, refreshData]);
 
     if (!participant) {
         return (
@@ -49,7 +56,7 @@ export default function ParticipantDetailsPage() {
                         <User className="w-8 h-8 text-gray-400" />
                     </div>
                     <h2 className="text-xl font-semibold text-gray-900 mb-2">Participant Not Found</h2>
-                    <p className="text-gray-500 mb-6">The participant you're looking for doesn't exist or has been removed.</p>
+                    <p className="text-gray-500 mb-6">The participant you&apos;re looking for doesn&apos;t exist or has been removed.</p>
                     <Link
                         href="/participants"
                         className="px-4 py-2 bg-knbs-600 text-white rounded-lg hover:bg-knbs-700 transition-colors"
@@ -421,7 +428,7 @@ export default function ParticipantDetailsPage() {
                                     </div>
                                     <h3 className="text-lg font-semibold text-gray-900">No Device Assigned</h3>
                                     <p className="text-gray-500 mt-2 mb-6 max-w-sm mx-auto">
-                                        This participant currently doesn't have a tablet assigned to them.
+                                        This participant currently doesn&apos;t have a tablet assigned to them.
                                     </p>
                                     <button className="px-6 py-2.5 bg-knbs-600 text-white rounded-lg hover:bg-knbs-700 transition-colors shadow-sm font-medium">
                                         Assign Tablet

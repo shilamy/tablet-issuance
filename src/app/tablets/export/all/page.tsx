@@ -10,12 +10,8 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Layout from "@/components/Layout";
-import { TabletDevice } from "@/types/tablet";
-
-// Mock data
-const mockTablets: TabletDevice[] = [
-  // ... (same as your main tablets page)
-];
+import { TabletDevice } from "@/types/tablets";
+import { useTabletStore } from "@/store/tabletStore";
 
 export default function ExportAllTablets() {
   const router = useRouter();
@@ -36,8 +32,9 @@ export default function ExportAllTablets() {
     splitFiles: false,
     watermark: false,
   });
+  const { tablets: storeTablets } = useTabletStore();
   const [exportStats, setExportStats] = useState({
-    totalRecords: mockTablets.length,
+    totalRecords: storeTablets.length,
     estimatedSize: '5.2 MB',
     processingTime: '~45 seconds',
     fieldsCount: 18,
@@ -63,7 +60,7 @@ export default function ExportAllTablets() {
   };
 
   const applyFilters = () => {
-    let filtered = [...mockTablets];
+    let filtered = [...storeTablets];
     
     if (filters.status !== 'all') {
       filtered = filtered.filter(t => t.status === filters.status);
@@ -94,25 +91,25 @@ export default function ExportAllTablets() {
   const filterOptions = {
     status: [
       { value: 'all', label: 'All Statuses' },
-      { value: 'available', label: 'Available', count: mockTablets.filter(t => t.status === 'available').length },
-      { value: 'issued', label: 'Issued', count: mockTablets.filter(t => t.status === 'issued').length },
-      { value: 'damaged', label: 'Damaged', count: mockTablets.filter(t => t.status === 'damaged').length },
-      { value: 'missing', label: 'Missing', count: mockTablets.filter(t => t.status === 'missing').length },
-      { value: 'maintenance', label: 'Maintenance', count: mockTablets.filter(t => t.status === 'maintenance').length },
+      { value: 'available', label: 'Available', count: storeTablets.filter(t => t.status === 'available').length },
+      { value: 'issued', label: 'Issued', count: storeTablets.filter(t => t.status === 'issued').length },
+      { value: 'damaged', label: 'Damaged', count: storeTablets.filter(t => t.status === 'damaged').length },
+      { value: 'missing', label: 'Missing', count: storeTablets.filter(t => t.status === 'missing').length },
+      { value: 'maintenance', label: 'Maintenance', count: storeTablets.filter(t => t.status === 'maintenance').length },
     ],
     condition: [
       { value: 'all', label: 'All Conditions' },
-      { value: 'excellent', label: 'Excellent', count: mockTablets.filter(t => t.condition === 'excellent').length },
-      { value: 'good', label: 'Good', count: mockTablets.filter(t => t.condition === 'good').length },
-      { value: 'fair', label: 'Fair', count: mockTablets.filter(t => t.condition === 'fair').length },
-      { value: 'poor', label: 'Poor', count: mockTablets.filter(t => t.condition === 'poor').length },
+      { value: 'excellent', label: 'Excellent', count: storeTablets.filter(t => t.condition === 'excellent').length },
+      { value: 'good', label: 'Good', count: storeTablets.filter(t => t.condition === 'good').length },
+      { value: 'fair', label: 'Fair', count: storeTablets.filter(t => t.condition === 'fair').length },
+      { value: 'poor', label: 'Poor', count: storeTablets.filter(t => t.condition === 'poor').length },
     ],
     models: [
       { value: 'all', label: 'All Models' },
-      ...Array.from(new Set(mockTablets.map(t => t.model))).map(model => ({
+      ...Array.from(new Set(storeTablets.map(t => t.model))).map(model => ({
         value: model,
         label: model,
-        count: mockTablets.filter(t => t.model === model).length
+        count: storeTablets.filter(t => t.model === model).length
       }))
     ],
     dateRanges: [
@@ -207,7 +204,7 @@ export default function ExportAllTablets() {
                 {formatOptions.map((option) => (
                   <button
                     key={option.value}
-                    onClick={() => setSelectedFormat(option.value as any)}
+                    onClick={() => setSelectedFormat(option.value as 'csv' | 'excel' | 'pdf' | 'json')}
                     className={`p-4 rounded-xl border-2 transition-all ${
                       selectedFormat === option.value
                         ? 'border-blue-500 bg-blue-50 shadow-sm'
@@ -316,7 +313,7 @@ export default function ExportAllTablets() {
                   >
                     {filterOptions.models.map((model) => (
                       <option key={model.value} value={model.value}>
-                        {model.label} {model.count ? `(${model.count})` : ''}
+                        {model.label} {'count' in model && model.count ? `(${model.count})` : ''}
                       </option>
                     ))}
                   </select>
@@ -415,11 +412,14 @@ export default function ExportAllTablets() {
                   </div>
                   <div className="bg-gray-50 rounded-lg p-3 text-xs font-mono overflow-x-auto">
                     <div className="text-gray-500">deviceId,model,status,location,assignedTo</div>
-                    <div className="text-gray-800">KNBS-TAB-001,Samsung Galaxy Tab A8,available,Nairobi Warehouse,</div>
-                    <div className="text-gray-800">KNBS-TAB-002,Lenovo Tab M10,issued,Nairobi Field,John Doe</div>
-                    <div className="text-gray-800">KNBS-TAB-003,iPad 9th Gen,damaged,Repair Center,</div>
-                    <div className="text-gray-800">KNBS-TAB-004,Samsung Galaxy Tab S6 Lite,available,Nairobi Warehouse,</div>
-                    <div className="text-gray-800">KNBS-TAB-005,Lenovo Tab P11,missing,Unknown,David Kimani</div>
+                    {storeTablets.slice(0, 5).map((t) => (
+                      <div key={t.id} className="text-gray-800">
+                        {`${t.id},${t.model || ''},${t.status || ''},${t.location || ''},${t.assignedTo || ''}`}
+                      </div>
+                    ))}
+                    {storeTablets.length === 0 && (
+                      <div className="text-gray-800">No tablets available to preview</div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -484,7 +484,7 @@ export default function ExportAllTablets() {
                   Security & Compliance
                 </div>
                 <p className="text-xs text-gray-500">
-                  This export contains sensitive data. Ensure proper handling according to your organization's data protection policies.
+                  This export contains sensitive data. Ensure proper handling according to your organization&apos;s data protection policies.
                 </p>
               </div>
             </div>

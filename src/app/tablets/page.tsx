@@ -44,7 +44,7 @@ import { cn } from "@/lib/utils";
 import Layout from "@/components/Layout";
 import { useTabletStore } from "@/store/tabletStore";
 import { TabletDevice } from "@/types/tablets";
-import { mockTablets } from "@/data/mockdata";
+// use tablets from store instead of mock data
 import { ImportModal } from "@/components/ui/import-modal";
 import { importTablets } from "@/lib/import";
 
@@ -574,7 +574,7 @@ export default function TabletsPage() {
               </div>
               <div className="flex justify-between items-center mt-4">
                 <div className="text-sm text-gray-600">
-                  {filteredTablets.length} of {mockTablets.length} tablets
+                  {filteredTablets.length} of {storeTablets.length} tablets
                 </div>
                 <button
                   onClick={() => {
@@ -1024,6 +1024,7 @@ export default function TabletsPage() {
         }}
         type="tablets"
         importFunction={importTablets}
+        serverEndpoint="/api/tablets/import"
       />
     </Layout>
   );

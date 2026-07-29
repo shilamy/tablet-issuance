@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import {
   Tablet, User, Calendar, MapPin, QrCode,
   ArrowLeft, Search, CheckCircle, AlertCircle,
@@ -10,15 +10,14 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import Layout from "@/components/Layout";
 import { useTabletStore } from "@/store/tabletStore";
-import { mockParticipants } from "@/data/mockdata";
 
-export default function CheckoutPage() {
+function CheckoutPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const qrCode = searchParams.get('qr');
 
   // Get data and actions from store
-  const {
+  const { 
     participants,
     tablets,
     getAvailableTablets,
@@ -39,27 +38,15 @@ export default function CheckoutPage() {
   // Get available tablets from store
   const availableTablets = getAvailableTablets();
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     setIsSubmitting(true);
-
-    // Use store's checkout action
-    const result = checkoutTablet({
-      participantId: formData.participantId,
-      tabletId: formData.tabletId,
-      expectedReturnDate: formData.expectedReturn,
-      location: formData.location,
-      activity: formData.activity,
-      notes: formData.notes
-    });
-
-    setTimeout(() => {
-      setIsSubmitting(false);
-      if (result) {
-        setStep(3); // Success step
-      } else {
-        alert("Failed to checkout tablet. Please check the details and try again.");
-      }
-    }, 1000);
+    try {
+      const response = await fetch('/api/issuances', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ participantId: formData.participantId, tabletId: formData.tabletId, expectedReturnDate: formData.expectedReturn, checkoutLocation: formData.location, notes: formData.notes }) });
+      if (!response.ok) throw new Error((await response.json()).error || 'Checkout failed');
+      await useTabletStore.getState().refreshData();
+      setStep(3);
+    } catch (error) { alert(error instanceof Error ? error.message : 'Failed to checkout tablet'); }
+    finally { setIsSubmitting(false); }
   };
 
   return (
@@ -338,4 +325,8 @@ export default function CheckoutPage() {
       </div>
     </Layout>
   );
+}
+
+export default function CheckoutPageWithSuspense() {
+  return <Suspense fallback={<div className="p-8">Loading…</div>}><CheckoutPage /></Suspense>;
 }

@@ -375,6 +375,6 @@ export default function ActivitiesPage() {
 }
 
 // Simple Helper
-function cn(...classes: any[]) {
+function cn(...classes: (string | undefined | null | boolean)[]) {
     return classes.filter(Boolean).join(" ");
 }

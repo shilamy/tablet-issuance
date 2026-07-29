@@ -112,7 +112,7 @@ export default function RegisterParticipant() {
                                     name="name"
                                     value={formData.name}
                                     onChange={handleChange}
-                                    placeholder="e.g. John Doe"
+                                    placeholder="Full name"
                                     className={cn(
                                         "w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-knbs-500",
                                         errors.name ? "border-red-300 focus:ring-red-200" : "border-gray-300"
@@ -171,7 +171,7 @@ export default function RegisterParticipant() {
                                         name="email"
                                         value={formData.email}
                                         onChange={handleChange}
-                                        placeholder="john@example.com"
+                                        placeholder="email@domain.com"
                                         className={cn(
                                             "w-full pl-9 pr-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-knbs-500",
                                             errors.email ? "border-red-300 focus:ring-red-200" : "border-gray-300"

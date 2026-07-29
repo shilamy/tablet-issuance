@@ -60,13 +60,12 @@ export default function NewParticipantPage() {
 
     setIsSubmitting(true);
 
-    // Simulate API call
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      console.log("Submitting participant data:", formData);
+      const response = await fetch('/api/participants', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: formData.name, email: formData.email, phone: formData.phone, location: formData.location, activity: formData.activity, status: 'PENDING', contractStatus: 'NONE', joinDate: new Date(formData.startDate), notes: `${formData.idNumber}${formData.notes ? `: ${formData.notes}` : ''}` }) });
+      if (!response.ok) throw new Error((await response.json()).error || 'Could not create participant');
       router.push("/participants");
     } catch (error) {
-      console.error("Error creating participant:", error);
+      setErrors({ form: error instanceof Error ? error.message : 'Could not create participant' });
     } finally {
       setIsSubmitting(false);
     }
@@ -119,7 +118,7 @@ export default function NewParticipantPage() {
                   name="name"
                   value={formData.name}
                   onChange={handleChange}
-                  placeholder="e.g. John Doe"
+                  placeholder="Full name"
                   className={cn(
                     "w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-knbs-500",
                     errors.name ? "border-red-300 focus:ring-red-200" : "border-gray-300"
@@ -179,7 +178,7 @@ export default function NewParticipantPage() {
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
-                    placeholder="john@example.com"
+                    placeholder="email@domain.com"
                     className={cn(
                       "w-full pl-9 pr-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-knbs-500",
                       errors.email ? "border-red-300 focus:ring-red-200" : "border-gray-300"

@@ -6,17 +6,15 @@ import {
   Eye, Trash2, Filter, Plus, X, Search,
   Users, MapPin, Battery, Package, Tablet,
   BarChart, Clipboard, Share2, Mail, Cloud,
-  CheckCircle, AlertCircle, Clock, Settings
+  CheckCircle, AlertCircle, Clock, Settings, FileText, Code
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Layout from "@/components/Layout";
-import { TabletDevice } from "@/types/tablet";
+import { TabletDevice } from "@/types/tablets";
+import { useTabletStore } from "@/store/tabletStore";
 
-// Mock data
-const mockTablets: TabletDevice[] = [
-  // ... (same as your main tablets page)
-];
+// Tablets are provided by the persisted zustand store (refreshed from the API)
 
 export default function ExportSelected() {
   const router = useRouter();
@@ -35,23 +33,43 @@ export default function ExportSelected() {
   const [showSelectionPanel, setShowSelectionPanel] = useState(false);
 
   // Save selected tablets
+  const tablets = useTabletStore((s) => s.tablets);
+  const refreshData = useTabletStore((s) => s.refreshData);
+
+  // Load saved selection and refresh store on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('selectedTablets');
+    if (saved) {
+      try {
+        setSelectedTablets(JSON.parse(saved));
+      } catch (e) {
+        console.error('Failed to parse saved selectedTablets', e);
+      }
+    }
+
+    // Attempt to refresh data from the API
+    refreshData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Save selected tablets
   useEffect(() => {
     localStorage.setItem('selectedTablets', JSON.stringify(selectedTablets));
   }, [selectedTablets]);
 
-  const filteredTablets = mockTablets.filter(tablet =>
+  const filteredTablets = tablets.filter((tablet) =>
     selectedTablets.includes(tablet.id) &&
     (searchQuery === "" ||
       tablet.deviceId.toLowerCase().includes(searchQuery.toLowerCase()) ||
       tablet.model.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (tablet.assignedTo?.toLowerCase() || '').includes(searchQuery.toLowerCase()))
+      (tablet.assignedTo?.toLowerCase() || "").includes(searchQuery.toLowerCase()))
   );
 
   const handleSelectAll = () => {
-    if (selectedTablets.length === mockTablets.length) {
+    if (selectedTablets.length === tablets.length) {
       setSelectedTablets([]);
     } else {
-      setSelectedTablets(mockTablets.map(t => t.id));
+      setSelectedTablets(tablets.map((t) => t.id));
     }
   };
 
@@ -131,7 +149,7 @@ export default function ExportSelected() {
           </div>
           <div className="flex items-center space-x-3">
             <button
-              onClick={() => router.refresh()}
+              onClick={() => { router.refresh(); refreshData(); }}
               className="p-2 hover:bg-gray-100 rounded-lg"
             >
               <RefreshCw className="w-5 h-5" />
@@ -155,14 +173,14 @@ export default function ExportSelected() {
               </div>
               <div className="h-12 w-px bg-blue-200"></div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-gray-900">{mockTablets.length}</div>
+                  <div className="text-3xl font-bold text-gray-900">{tablets.length}</div>
                 <div className="text-sm text-gray-600">Total Available</div>
               </div>
               <div className="h-12 w-px bg-blue-200"></div>
               <div className="text-center">
                 <div className="text-3xl font-bold text-gray-900">
-                  {selectedTablets.length > 0 ? 
-                    `${Math.round((selectedTablets.length / mockTablets.length) * 100)}%` : 
+                  {selectedTablets.length > 0 && tablets.length > 0 ?
+                    `${Math.round((selectedTablets.length / tablets.length) * 100)}%` :
                     '0%'
                   }
                 </div>
@@ -173,12 +191,12 @@ export default function ExportSelected() {
               <button
                 onClick={handleSelectAll}
                 className={`px-4 py-2 rounded-lg font-medium ${
-                  selectedTablets.length === mockTablets.length
+                  selectedTablets.length === tablets.length
                     ? 'bg-red-100 text-red-700 hover:bg-red-200'
                     : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
                 }`}
               >
-                {selectedTablets.length === mockTablets.length ? 'Deselect All' : 'Select All'}
+                {selectedTablets.length === tablets.length ? 'Deselect All' : 'Select All'}
               </button>
               <button
                 onClick={() => setSelectedTablets([])}
@@ -565,7 +583,7 @@ export default function ExportSelected() {
               
               <div className="p-6 max-h-[60vh] overflow-y-auto">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {mockTablets.filter(t => !selectedTablets.includes(t.id)).slice(0, 12).map(tablet => (
+                  {tablets.filter(t => !selectedTablets.includes(t.id)).slice(0, 12).map(tablet => (
                     <div
                       key={tablet.id}
                       className="p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 cursor-pointer"

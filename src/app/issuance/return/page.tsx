@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
 import Link from 'next/link';
 import { ArrowLeft, Search, CheckCircle, Package, Calendar, MapPin, AlertTriangle, QrCode, User, Clock } from 'lucide-react';
@@ -8,7 +8,7 @@ import { useTabletStore } from '@/store/tabletStore';
 import { useSearchParams } from 'next/navigation';
 import { DetailPageSkeleton } from '@/components/ui/skeleton';
 
-export default function ReturnPage() {
+function ReturnPage() {
   const searchParams = useSearchParams();
   const initialIssuanceId = searchParams.get('issuanceId');
   
@@ -51,16 +51,13 @@ export default function ReturnPage() {
 
     setIsProcessing(true);
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    const success = checkinTablet({
-      issuanceId: selectedIssuance,
-      actualReturnDate: returnData.returnDate,
-      location: returnData.location,
-      condition: returnData.condition,
-      notes: returnData.notes
-    });
+    let success = false;
+    try {
+      const response = await fetch(`/api/issuances/${selectedIssuance}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ actualReturnDate: returnData.returnDate, checkinLocation: returnData.location, condition: returnData.condition, notes: returnData.notes }) });
+      success = response.ok;
+      if (!success) alert((await response.json()).error || 'Check-in failed');
+      if (success) await useTabletStore.getState().refreshData();
+    } catch { alert('Check-in failed. Please try again.'); }
 
     setIsProcessing(false);
     
@@ -332,4 +329,8 @@ export default function ReturnPage() {
       </div>
     </Layout>
   );
+}
+
+export default function ReturnPageWithSuspense() {
+  return <Suspense fallback={<div className="p-8">Loading…</div>}><ReturnPage /></Suspense>;
 }

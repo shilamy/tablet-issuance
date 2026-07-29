@@ -62,7 +62,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [user]);
 
-  const login = useCallback(async (email: string, password: string): Promise<boolean> => {\n    setIsLoading(true);\n    try {\n      const response = await fetch('/api/auth/login', {\n        method: 'POST',\n        headers: { 'Content-Type': 'application/json' },\n        body: JSON.stringify({ email, password }),\n      });\n\n      const data = await response.json();\n      \n      if (data.success && data.user) {\n        // Map Prisma User to frontend User\n        const frontendUser = {\n          ...data.user,\n          role: data.user.role.toLowerCase().replace('_', ' ') as any,\n        };\n        setUser(frontendUser);\n        return true;\n      }\n      return false;\n    } catch (error) {\n      console.error('Login error:', error);\n      return false;\n    } finally {\n      setIsLoading(false);\n    }\n  }, []);
+  const login = useCallback(async (email: string, password: string): Promise<boolean> => {
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+      
+      if (data.success && data.user) {
+        // Map Prisma User to frontend User
+        const roleMapping: Record<string, User['role']> = {
+          'admin': 'admin',
+          'manager': 'manager',
+          'field_officer': 'field_officer',
+          'viewer': 'viewer',
+          'ADMIN': 'admin',
+          'MANAGER': 'manager',
+          'FIELD_OFFICER': 'field_officer',
+          'VIEWER': 'viewer',
+        };
+
+        const frontendUser: User = {
+          ...data.user,
+          role: roleMapping[data.user.role] || 'viewer',
+        };
+        setUser(frontendUser);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Login error:', error);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   const logout = useCallback(() => {
     setUser(null);

@@ -59,7 +59,6 @@ import { cn } from "@/lib/utils";
 import Layout from "@/components/Layout";
 import { Participant } from "@/types/participants";
 import { useTabletStore } from "@/store/tabletStore";
-import { mockParticipants } from "@/data/mockdata";
 
 
 

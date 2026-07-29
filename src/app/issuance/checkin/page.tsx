@@ -1,19 +1,20 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Suspense, useMemo, useState, useEffect } from "react";
 import { 
-  Tablet, User, Calendar, MapPin, QrCode,
-  ArrowLeft, Search, CheckCircle, AlertCircle,
-  Clock, Shield, Package, RefreshCw
+  Tablet, CheckCircle,
+  ArrowLeft, Shield, RefreshCw
 } from "lucide-react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import Layout from "@/components/Layout";
+import { useTabletStore } from "@/store/tabletStore";
 
-export default function CheckinPage() {
-  const router = useRouter();
+function CheckinPage() {
   const searchParams = useSearchParams();
   const qrCode = searchParams.get('qr') || searchParams.get('tablet') || searchParams.get('participant');
+  
+  const { issuances, refreshData } = useTabletStore();
   
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -24,6 +25,10 @@ export default function CheckinPage() {
     notes: "",
     location: "Nairobi Office"
   });
+
+  useEffect(() => {
+    refreshData();
+  }, [refreshData]);
 
   type ActiveIssuanceInfo = {
     participantName: string;
@@ -37,15 +42,24 @@ export default function CheckinPage() {
   const activeIssuance = useMemo<ActiveIssuanceInfo | null>(() => {
     if (!formData.tabletId && !formData.participantId) return null;
 
-    return {
-      participantName: "John Doe",
-      tabletModel: "Samsung Galaxy Tab A8",
-      checkedOutAt: "2024-01-10T10:00:00Z",
-      expectedReturn: "2024-01-15T18:00:00Z",
-      checkedOutBy: "Admin User",
-      location: "Nairobi Office",
-    };
-  }, [formData.participantId, formData.tabletId]);
+    // Find matching issuance from store
+    const issuance = issuances.find(
+      i => i.tabletId === formData.tabletId || i.participantId === formData.participantId
+    );
+
+    if (issuance) {
+      return {
+        participantName: issuance.participantName,
+        tabletModel: issuance.tabletModel,
+        checkedOutAt: issuance.checkoutDate,
+        expectedReturn: issuance.expectedReturnDate,
+        checkedOutBy: issuance.checkoutBy || "System",
+        location: issuance.checkoutLocation || "Nairobi Office",
+      };
+    }
+
+    return null;
+  }, [formData.participantId, formData.tabletId, issuances]);
 
   const handleSubmit = () => {
     setLoading(true);
@@ -112,7 +126,7 @@ export default function CheckinPage() {
                     type="text"
                     value={formData.tabletId}
                     onChange={(e) => setFormData({...formData, tabletId: e.target.value})}
-                    placeholder="KNBS-TAB-001"
+                    placeholder="Enter device ID"
                     className="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
@@ -215,10 +229,11 @@ export default function CheckinPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="checkin-location" className="block text-sm font-medium text-gray-700 mb-2">
                   Check-in Location
                 </label>
                 <select
+                  id="checkin-location"
                   value={formData.location}
                   onChange={(e) => setFormData({...formData, location: e.target.value})}
                   className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
@@ -322,4 +337,8 @@ export default function CheckinPage() {
       </div>
     </Layout>
   );
+}
+
+export default function CheckinPageWithSuspense() {
+  return <Suspense fallback={<div className="p-8">Loading…</div>}><CheckinPage /></Suspense>;
 }

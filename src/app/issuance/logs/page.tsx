@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { 
   History, Download, Filter, Search, Calendar,
   LogOut, LogIn, User, Tablet, MapPin, Clock,
@@ -33,63 +33,54 @@ interface LogEntry {
   duration?: string;
 }
 
-function generateMockLogs(count: number = 50): LogEntry[] {
-  const locations = ['Nairobi HQ', 'Mombasa Branch', 'Kisumu Office', 'Nakuru Center', 'Eldoret Base'];
-  const participants = [
-    { id: 'P-1001', name: 'John Doe' },
-    { id: 'P-1002', name: 'Jane Smith' },
-    { id: 'P-1003', name: 'Robert Johnson' },
-    { id: 'P-1004', name: 'Sarah Williams' },
-    { id: 'P-1005', name: 'Michael Brown' },
-    { id: 'P-1006', name: 'Emily Davis' },
-    { id: 'P-1007', name: 'David Wilson' },
-    { id: 'P-1008', name: 'Lisa Miller' },
-  ];
-  const tablets = [
-    { id: 'KNBS-TAB-001', model: 'Samsung Galaxy Tab A8' },
-    { id: 'KNBS-TAB-002', model: 'iPad 10th Gen' },
-    { id: 'KNBS-TAB-003', model: 'Lenovo Tab M10' },
-    { id: 'KNBS-TAB-004', model: 'Microsoft Surface Go 3' },
-    { id: 'KNBS-TAB-005', model: 'Samsung Galaxy Tab S9' },
-  ];
-  const performers = ['Admin User', 'Manager 1', 'Supervisor 2', 'Field Officer 3'];
-  const statuses: LogStatus[] = ['success', 'warning', 'error'];
+// Build logs by loading issuances and mapping to checkout/checkin entries
+async function fetchIssuanceLogs(): Promise<LogEntry[]> {
+  try {
+    const res = await fetch('/api/issuances');
+    if (!res.ok) return [];
+    const issuances = await res.json();
+    const entries: LogEntry[] = [];
 
-  const logs: LogEntry[] = [];
-  const now = new Date();
+    for (const iss of issuances) {
+      // checkout entry
+      entries.push({
+        id: `${iss.id}-checkout`,
+        type: 'checkout',
+        participantId: iss.participantId,
+        participantName: iss.participant?.name || '',
+        tabletId: iss.tablet?.deviceId || iss.tabletId,
+        tabletModel: iss.tablet?.model || '',
+        timestamp: iss.checkoutDate,
+        location: iss.checkoutLocation || '',
+        performedBy: iss.checkoutBy?.name || 'System',
+        notes: iss.notes || '',
+        status: 'success',
+      });
 
-  for (let i = 1; i <= count; i++) {
-    const type: LogType = Math.random() > 0.5 ? 'checkout' : 'checkin';
-    const participant = participants[Math.floor(Math.random() * participants.length)];
-    const tablet = tablets[Math.floor(Math.random() * tablets.length)];
-    const location = locations[Math.floor(Math.random() * locations.length)];
-    const performedBy = performers[Math.floor(Math.random() * performers.length)];
-    const status = statuses[Math.floor(Math.random() * statuses.length)];
+      // checkin entry (if returned)
+      if (iss.actualReturnDate) {
+        entries.push({
+          id: `${iss.id}-checkin`,
+          type: 'checkin',
+          participantId: iss.participantId,
+          participantName: iss.participant?.name || '',
+          tabletId: iss.tablet?.deviceId || iss.tabletId,
+          tabletModel: iss.tablet?.model || '',
+          timestamp: iss.actualReturnDate,
+          location: iss.checkinLocation || '',
+          performedBy: iss.checkinBy?.name || 'System',
+          notes: iss.notes || '',
+          status: 'success',
+          duration: undefined,
+        });
+      }
+    }
 
-    // Generate random date within last 30 days
-    const daysAgo = Math.floor(Math.random() * 30);
-    const timestamp = new Date(now);
-    timestamp.setDate(now.getDate() - daysAgo);
-    timestamp.setHours(Math.floor(Math.random() * 24));
-    timestamp.setMinutes(Math.floor(Math.random() * 60));
-
-    logs.push({
-      id: `LOG-${String(i).padStart(3, '0')}`,
-      type,
-      participantId: participant.id,
-      participantName: participant.name,
-      tabletId: tablet.id,
-      tabletModel: tablet.model,
-      timestamp: timestamp.toISOString(),
-      location,
-      performedBy,
-      notes: type === 'checkout' ? 'Field survey equipment issued' : 'Tablet returned and inspected',
-      status,
-      duration: type === 'checkout' ? `${Math.floor(Math.random() * 14) + 1} days` : undefined
-    });
+    return entries.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  } catch (err) {
+    console.error('Failed to load issuance logs', err);
+    return [];
   }
-
-  return logs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 }
 
 export default function LogsPage() {
@@ -108,7 +99,15 @@ export default function LogsPage() {
   const [selectedLog, setSelectedLog] = useState<LogEntry | null>(null);
   const [showFilters, setShowFilters] = useState(false);
 
-  const logs = useMemo(() => generateMockLogs(50), []);
+  const [logs, setLogs] = useState<LogEntry[]>([]);
+
+  useEffect(() => {
+    let mounted = true;
+    fetchIssuanceLogs().then((data) => {
+      if (mounted) setLogs(data);
+    });
+    return () => { mounted = false; };
+  }, []);
   
   const filteredLogs = useMemo(() => {
     let result = [...logs];
